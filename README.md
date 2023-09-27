@@ -17,7 +17,7 @@ This means I have a topology like this:
 +------------------------------+                             +--------------------+
 ```
 
-In this topology, I edit files on 10.0.0.6 but consume them in Windows; automagically serving the PDF via http is helpful so I can render the pdf immediately after editing.
+In this topology, I edit files on 10.0.0.6 but consume them in Windows; automagically serving the PDF via http is helpful so I can see the rendered pdf immediately after editing.
 
 # Typical Use-case
 
