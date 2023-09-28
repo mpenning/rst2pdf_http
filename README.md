@@ -24,6 +24,9 @@ In this topology, I edit files on 10.0.0.6 but consume them in Windows; automagi
 Assume I am building a pdf for a doocument saved as `CoverLetter_20230927.rst` and want to serve it on port 8080....
 
 ```
+$ make build
+...
+
 $ python ./rst2pdf_builder.py -r CoverLetter_20230927 -w 8080
 
 rst2pdf --stylesheet-path=/home/mpenning/.rst2pdf/ --stylesheets=rst2pdf_stylesheet.yml CoverLetter_20230927.rst -o CoverLetter_20230927.pdf
@@ -39,8 +42,7 @@ Serving HTTP on :: port 8080 (http://[::]:8080/) ...
 # Full Syntax
 
 ```
-$ python
- $ python rst2pdf_http.py -h
+$ python rst2pdf_http.py -h
 usage: rst2pdf_http.py [-h] [-d STYLESHEET_DIRECTORY] [-e STYLESHEET_FILENAME] [-n {Mono,Sans,Serif}] [-s {10,12,14}] [-a {Bold,Italic,Oblique}] [-r RST_PREFIX]
                        [-w WEBSERVER_PORT] [-t TERMINAL_ENCODING]
 
