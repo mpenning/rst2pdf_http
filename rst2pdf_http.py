@@ -5,6 +5,7 @@
 from functools import wraps
 # subprocess.run() is generally-recommended instead of subprocess.call()
 from subprocess import run, call
+import ipaddress
 import argparse
 import tempfile
 import warnings
@@ -68,6 +69,38 @@ except (NameError, ModuleNotFoundError):
                     return inner_call
             return outside_wrapper
 
+def is_valid_ipv4addr(addr, raise_error=True):
+    if isinstance(addr, str):
+        try:
+            ipaddress.IPv4Address(addr)
+            return True
+        except Exception:
+            if raise_error:
+                raise ValueError(f"{addr} is not a valid IPv4 Address.")
+            else:
+                return False
+    else:
+        if raise_error:
+            raise ValueError(f"{addr} must be a string IPv4 address")
+        else:
+            return False
+
+def is_valid_ipv6addr(addr, raise_error=True):
+    if isinstance(addr, str):
+        try:
+            ipaddress.IPv6Address(addr)
+            return True
+        except Exception:
+            if raise_error:
+                raise ValueError(f"{addr} is not a valid IPv6 Address.")
+            else:
+                return False
+    else:
+        if raise_error:
+            raise ValueError(f"{addr} must be a string IPv6 address")
+        else:
+            return False
+
 class Stylesheet(object):
 
     # This is on the Stylesheet() class
@@ -99,22 +132,27 @@ class Stylesheet(object):
     # This is on the Stylesheet() class
     @logger.catch(reraise=True)
     def save_stylesheet_yaml(self, directory=DEFAULT_STYLESHEET_DIRECTORY, filename=DEFAULT_STYLESHEET_FILENAME):
-        """dump `data` as an rst2pdf YAML stylesheet"""
+        """Use PyYaml to save `get_rst2pdf_data_dict()` as an rst2pdf stylesheet"""
         try:
             os.makedirs(f"{directory}")
         except Exception:
             pass
         filepath = os.path.normpath(f"{directory}/{filename}")
-        data = self.get_rst2pdf_data_dict(font_name=self.font_name)
         with open(filepath, 'w') as fh:
-            yaml.dump(data, fh, default_flow_style=False)
+            yaml.dump(
+                data=self.get_rst2pdf_data_dict(font_name=self.font_name),
+                stream=fh,
+                default_flow_style=False
+            )
 
     # This is on the Stylesheet() class
     @logger.catch(reraise=True)
     def get_rst2pdf_data_dict(self, font_name=None):
+        """
+        Create the most essential rst2pdf stylesheet from scratch.
+        """
         return {
             "styles": {
-                #"fontName": self.get_rst2pdf_fontName(font_name=font_name),
                 "base": {
                         "alignment": "LEFT",
                         "allowOrphans": False,
@@ -146,23 +184,150 @@ class Stylesheet(object):
     @logger.catch(reraise=True)
     def get_rst2pdf_fontName(self, font_name=""):
         """Get the rst2pdf fontName, which usually looks like: 'fontMonoBoldItalic'."""
-        if isinstance(font_name, str):
-            for ii in sorted(self.font_attrs):
-                font_name += ii
-            if font_name[0:3]=="font":
-                return font_name
-            else:
-                font_name = "font" + font_name
-                return font_name
+        if font_name in VALID_FONT_NAMES:
+            pass
         else:
-            raise ValueError()
+            raise ValueError(f"{font_name} is an invalid font name.")
 
+        for ii in sorted(self.font_attrs):
+            font_name += ii
+        if font_name[0:3]=="font":
+            return font_name
+        else:
+            font_name = "font" + font_name
+            return font_name
+
+class ThisApplication(object):
+    def __init__(self, rst_prefix=None):
+        """
+        `rst_prefix` is the string filename prefix of the rst file.
+        """
+
+        self.rst_prefix=rst_prefix
+        self.original_filename = os.path.normpath(f"{rst_prefix}".split('/')[-1]+".pdf")
+        self.current_path = os.path.normpath(f"{os.getcwd()}/{self.original_filename}")
+
+    def create_stylesheet(self, directory=None, filename=None, font_name=None, font_size=None, font_attrs=None):
+        ssobj = Stylesheet(font_name=font_name, font_size=font_size, font_attrs=font_attrs,)
+        ssobj.save_stylesheet_yaml(directory=directory, filename=filename)
+
+    def convert_rst_to_pdf(self, stylesheet_directory=None, stylesheet_filename=None):
+        self.check_file_exists(filepath=f"{self.rst_prefix}.rst")
+        self.check_file_exists(filepath=f"{stylesheet_directory}/{stylesheet_filename}")
+
+        rst2pdf_cmd = f"rst2pdf --stylesheet-path={stylesheet_directory} --stylesheets={stylesheet_filename} {self.rst_prefix}.rst -o {self.rst_prefix}.pdf"
+        if LOGURU_IMPORTED is True:
+            logger.info(f"{rst2pdf_cmd}")
+        else:
+            print(rst2pdf_cmd)
+
+        output_namedtuple = run(
+            shlex.split(rst2pdf_cmd),
+            shell=False,
+            capture_output=True,
+        )
+
+        self.copy_file(src=f"{self.rst_prefix}.pdf", dst=self.current_path)
+
+    def check_file_exists(self, filepath=None):
+        """
+        Check whether `filepath` exists; if so, return True.
+        """
+        if not isinstance(filepath, str):
+            raise ValueError(f"{filepath} must be a string.")
+
+        abspath = os.path.abspath(os.path.expanduser(os.path.normpath(f"{filepath}")))
+        if LOGURU_IMPORTED is True:
+            logger.info(f"    filepath: {filepath}")
+            logger.info(f"        checking: {abspath}")
+        else:
+            print(f"       checking: {abspath}")
+
+        if os.path.exists(abspath):
+            pass
+        else:
+            raise OSError(f"{abspath} must exist.")
+        return True
+
+    def copy_file(self, src, dst):
+        try:
+            shutil.copy(src, dst)
+            return True
+        except shutil.SameFileError:
+            warnings.warn("Source and destination are the same file; no file copy was required.")
+            return False
+
+    def check_ipv46_addrs(self, ipv46_addrs):
+        """
+        Walk all the strings in ipv46_addrs and return True if they are all valid.
+
+        Raise an error if one is not valid.
+        """
+        if not isinstance(ipv46_addrs, list):
+            error = "`ipv46_addrs` must be a non-empty list."
+            raise ValueError(error)
+
+        if len(ipv46_addrs) == 0:
+            error = "`ipv46_addrs` must be a non-empty list."
+            raise ValueError(error)
+
+        for addr in ipv46_addrs:
+            # Raise an error if the address is invalid
+            if not (is_valid_ipv4addr(addr, raise_error=False) or is_valid_ipv6addr(addr, raise_error=False)):
+                raise ValueError(f"addr: {addr} is an invalid address.")
+
+        return True
+
+    def start_webserver(self, local_ipv46_addrs=None, webserver_port=0):
+        """
+        Create a temporary directory, copy files into it, and start webserver on all sockets.
+        """
+        if webserver_port == 0:
+            error = "Webserver port must not be 0"
+            raise ValueError(error)
+
+        original_filename = self.original_filename
+
+        # Check the local ipv4 / ipv6 addresses for problems...
+        self.check_ipv46_addrs(local_ipv46_addrs)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temporary_path = os.path.normpath(f"{temp_dir}/{original_filename}")
+            try:
+                self.copy_file(src=original_filename, dst=temporary_path)
+            except shutil.SameFileError:
+                warnings.warn("Source and temporary destination are the same file; no file copy was required.")
+
+            print("")
+            for v46addr in local_ipv46_addrs:
+                # Skip binding to loopback addresses... this is pointless.  If it's sufficient to bind
+                # to the loopback, then you dont need this script.
+                if re.search(r"^(::1|127\.\d+\.\d+\.\d+)$", v46addr):
+                    continue
+                elif ":" in v46addr:
+                    print(f"Local URL http://[{v46addr}]:{args.webserver_port}/")
+                else:
+                    print(f"Local URL http://{v46addr}:{args.webserver_port}/")
+
+            print("")
+            # Change to the temporary directory and start a webserver to serve locally...
+            try:
+                os.chdir(temp_dir)
+                #return_code = call(f"python -m http.server --bind 0.0.0.0 {args.webserver_port}", shell=True)
+                return_code = call(f"python -m http.server --bind :: {webserver_port}", shell=True)
+            except KeyboardInterrupt:
+                print("    Webserver interrupted by KeyboardInterrupt.")
 
 @logger.catch(reraise=True)
-def parse_cli_args():
+def parse_cli_args(sys_argv1):
     """
     Reference: https://docs.python.org/3/library/argparse.html
     """
+    if isinstance(sys_argv1, list):
+        pass
+    else:
+        raise ValueError("`sys_argv1` must be a list with CLI options from `sys.argv[1:]`")
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--stylesheet_directory",
         type=str,
@@ -220,11 +385,14 @@ def parse_cli_args():
         action="store",
         help="."
     )
-    args = parser.parse_args()
+    args = parser.parse_args(sys_argv1)
     return args
 
 @logger.catch(reraise=True)
-def posix_list_local_ipaddrs(terminal_encoding=None):
+def nix_list_local_ipaddrs(terminal_encoding=None):
+    """
+    List the local ip addresses on a *nix machine with `ifconfig -a`.
+    """
     ipv46_addrs = []
     cmd = "ifconfig -a"
     output_namedtuple = run(
@@ -248,70 +416,73 @@ def list_local_ipaddrs(**kwargs):
     #     https://stackoverflow.com/a/13874620
     pltfm = sys.platform
     if pltfm == 'linux' or pltfm == 'linux2':
-        return posix_list_local_ipaddrs(**kwargs)
+        return nix_list_local_ipaddrs(**kwargs)
     elif pltfm == 'cygwin':
-        return posix_list_local_ipaddrs(**kwargs)
+        return nix_list_local_ipaddrs(**kwargs)
     elif pltfm == 'darwin':
-        return posix_list_local_ipaddrs(**kwargs)
+        return nix_list_local_ipaddrs(**kwargs)
     elif re.search(r"^freebsd", pltfm):
-        return posix_list_local_ipaddrs(**kwargs)
+        return nix_list_local_ipaddrs(**kwargs)
     else:
         raise ValueError(f"Unsupported sys.platform: {pltfm}.")
 
 
 if __name__=="__main__":
-    args = parse_cli_args()
-    obj = Stylesheet(font_name=args.font_name, font_size=args.font_size, font_attrs=args.font_attrs,)
-    obj.save_stylesheet_yaml()
-    rst2pdf_cmd = f"rst2pdf --stylesheet-path={args.stylesheet_directory} --stylesheets={args.stylesheet_filename} {args.rst_prefix}.rst -o {args.rst_prefix}.pdf"
-    print(rst2pdf_cmd)
-    output_namedtuple = run(
-        shlex.split(rst2pdf_cmd),
-        shell=False,
-        capture_output=True,
+
+    if False:
+        obj = Stylesheet(font_name=args.font_name, font_size=args.font_size, font_attrs=args.font_attrs,)
+        obj.save_stylesheet_yaml()
+
+    args = parse_cli_args(sys.argv[1:])
+    app = ThisApplication(rst_prefix=args.rst_prefix)
+    app.create_stylesheet(
+        directory=args.stylesheet_directory,
+        filename=args.stylesheet_filename,
+        font_name=args.font_name,
+        font_size=args.font_size,
+        font_attrs=args.font_attrs,
     )
+    app.convert_rst_to_pdf(stylesheet_directory=args.stylesheet_directory, stylesheet_filename=args.stylesheet_filename)
 
+    if False:
+        original_filename = os.path.normpath(f"{args.rst_prefix}".split('/')[-1]+".pdf")
 
-    #original_path = os.path.normpath(f"{args.rst_prefix}/{original_filename}")
-    #original_path = os.path.normpath(f"{args.rst_prefix}")
-    original_filename = os.path.normpath(f"{args.rst_prefix}".split('/')[-1]+".pdf")
-
-    # Copy from original directory to current-working-directory...
-    current_path = os.path.normpath(f"{os.getcwd()}/{original_filename}")
-    try:
-        shutil.copy(original_filename, current_path)
-    except shutil.SameFileError:
-        warnings.warn("Source and destination are the same file; no file copy was required.")
-
-    # Copy from original directory to temporary-directory...
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temporary_path = os.path.normpath(f"{temp_dir}/{original_filename}")
+        # Copy from original directory to current-working-directory...
+        current_path = os.path.normpath(f"{os.getcwd()}/{original_filename}")
         try:
-            shutil.copy(original_filename, temporary_path)
+            shutil.copy(original_filename, current_path)
         except shutil.SameFileError:
-            warnings.warn("Source and temporary destination are the same file; no file copy was required.")
+            warnings.warn("Source and destination are the same file; no file copy was required.")
 
-        # List local http URLs and start a temporary webserver...
-        if args.webserver_port > 0:
-            print("")
-            ipv46_addrs = list_local_ipaddrs(terminal_encoding=args.terminal_encoding)
-            for v46addr in ipv46_addrs:
-                if re.search(r"^(::1|127\.\d+\.\d+\.\d+)$", v46addr):
-                    # I cant make the python webserver bind to linux loopback...
-                    continue
-                elif ":" in v46addr:
-                    print(f"Local URL http://[{v46addr}]:{args.webserver_port}/")
-                else:
-                    print(f"Local URL http://{v46addr}:{args.webserver_port}/")
-
-            print("")
-            # Change to the temporary directory and start a webserver to serve locally...
+        # Copy from original directory to temporary-directory...
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temporary_path = os.path.normpath(f"{temp_dir}/{original_filename}")
             try:
-                os.chdir(temp_dir)
-                #return_code = call(f"python -m http.server --bind 0.0.0.0 {args.webserver_port}", shell=True)
-                return_code = call(f"python -m http.server --bind :: {args.webserver_port}", shell=True)
-            except KeyboardInterrupt:
-                print("    Webserver interrupted by KeyboardInterrupt.")
+                shutil.copy(original_filename, temporary_path)
+            except shutil.SameFileError:
+                warnings.warn("Source and temporary destination are the same file; no file copy was required.")
+
+            # List local http URLs and start a temporary webserver...
+            if args.webserver_port > 0:
+                print("")
+                ipv46_addrs = list_local_ipaddrs(terminal_encoding=args.terminal_encoding)
+                for v46addr in ipv46_addrs:
+                    if re.search(r"^(::1|127\.\d+\.\d+\.\d+)$", v46addr):
+                        # I cant make the python webserver bind to linux loopback...
+                        continue
+                    elif ":" in v46addr:
+                        print(f"Local URL http://[{v46addr}]:{args.webserver_port}/")
+                    else:
+                        print(f"Local URL http://{v46addr}:{args.webserver_port}/")
+
+                print("")
+                # Change to the temporary directory and start a webserver to serve locally...
+                try:
+                    os.chdir(temp_dir)
+                    #return_code = call(f"python -m http.server --bind 0.0.0.0 {args.webserver_port}", shell=True)
+                    return_code = call(f"python -m http.server --bind :: {args.webserver_port}", shell=True)
+                except KeyboardInterrupt:
+                    print("    Webserver interrupted by KeyboardInterrupt.")
 
 
 
