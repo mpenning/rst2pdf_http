@@ -15,6 +15,11 @@ pip:
 	pip install -Ur ./requirements.txt
 .PHONY: pip
 
+vulture:
+	@echo "$(CLR_GREEN)>> Run python vulture at 80-percent confidence.$(CLR_END)"
+	vulture --min-confidence 80 rst2pdf_http.py
+.PHONY: vulture
+
 build:
 	@echo "$(CLR_GREEN)>> Building the 'filesystem_webserver' Go 'go.mod' file.$(CLR_END)"
 	@echo "$(CLR_CYAN)    >> Removing the old ./filesystem_webserver binary.$(CLR_END)"
@@ -30,6 +35,7 @@ build:
 	@echo "$(CLR_CYAN)    >> compiling...$(CLR_END)"
 	-cd src && go build -ldflags "-s -w" -o ../filesystem_webserver .
 	# Install all python dependencies
+	make vulture
 	make pip
 .PHONY: build
 
