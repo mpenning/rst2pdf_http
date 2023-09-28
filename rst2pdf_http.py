@@ -249,6 +249,7 @@ class ThisApplication(object):
         return True
 
     def copy_file(self, src, dst):
+        logger.debug(f"copy {src} {dst}")
         try:
             shutil.copy(src, dst)
             return True
@@ -290,32 +291,37 @@ class ThisApplication(object):
         # Check the local ipv4 / ipv6 addresses for problems...
         self.check_ipv46_addrs(local_ipv46_addrs)
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temporary_path = os.path.normpath(f"{temp_dir}/{original_filename}")
-            try:
-                self.copy_file(src=f"{self.rst_prefix}.pdf", dst=temporary_path)
-            except shutil.SameFileError:
-                warnings.warn("Source and temporary destination are the same file; no file copy was required.")
+        if True:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temporary_path = os.path.normpath(f"{temp_dir}/{original_filename}")
+                try:
+                    self.copy_file(src=f"{self.rst_prefix}.pdf", dst=temporary_path)
+                except shutil.SameFileError:
+                    warnings.warn("Source and temporary destination are the same file; no file copy was required.")
 
-            print("")
-            for v46addr in local_ipv46_addrs:
-                # Skip binding to loopback addresses... this is pointless.  If it's sufficient to bind
-                # to the loopback, then you dont need this script.
-                if re.search(r"^(::1|127\.\d+\.\d+\.\d+)$", v46addr):
-                    continue
-                elif ":" in v46addr:
-                    print(f"Local URL http://[{v46addr}]:{args.webserver_port}/")
-                else:
-                    print(f"Local URL http://{v46addr}:{args.webserver_port}/")
+                print("")
+                for v46addr in local_ipv46_addrs:
+                    # Skip binding to loopback addresses... this is pointless.  If it's sufficient to bind
+                    # to the loopback, then you dont need this script.
+                    if re.search(r"^(::1|127\.\d+\.\d+\.\d+)$", v46addr):
+                        continue
+                    elif ":" in v46addr:
+                        print(f"Local URL http://[{v46addr}]:{args.webserver_port}/")
+                    else:
+                        print(f"Local URL http://{v46addr}:{args.webserver_port}/")
 
-            print("")
-            # Change to the temporary directory and start a webserver to serve locally...
-            try:
-                os.chdir(temp_dir)
-                #return_code = call(f"python -m http.server --bind 0.0.0.0 {args.webserver_port}", shell=True)
-                return_code = call(f"python -m http.server --bind :: {webserver_port}", shell=True)
-            except KeyboardInterrupt:
-                print("    Webserver interrupted by KeyboardInterrupt.")
+                ###############################################################
+                # Change to the temporary directory and start the Golang
+                #     webserver to serve files from `temp_dir` locally...
+                ###############################################################
+                print("")
+                try:
+                    return_code = call(
+                        f"{os.getcwd()}/filesystem_webserver --webserver_port {webserver_port} --webserver_directory {temp_dir}",
+                        shell=True
+                    )
+                except KeyboardInterrupt:
+                    print("    Webserver interrupted by KeyboardInterrupt.")
 
 @logger.catch(reraise=True)
 def parse_cli_args(sys_argv1):
@@ -427,10 +433,6 @@ def list_local_ipaddrs(**kwargs):
 
 
 if __name__=="__main__":
-
-    if False:
-        obj = Stylesheet(font_name=args.font_name, font_size=args.font_size, font_attrs=args.font_attrs,)
-        obj.save_stylesheet_yaml()
 
     args = parse_cli_args(sys.argv[1:])
     app = ThisApplication(rst_prefix=args.rst_prefix)
