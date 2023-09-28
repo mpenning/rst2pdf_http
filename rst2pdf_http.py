@@ -41,7 +41,7 @@ except (NameError, ModuleNotFoundError):
         """
         Dummy loguru.logger.catch() implementation.
         """
-        def catch(reraise=False):
+        def catch(**dummy_catch_kwargs):
             """
             Catch of the logger.catch() class-method stub.
 
@@ -51,6 +51,11 @@ except (NameError, ModuleNotFoundError):
                 def main():
                     pass
             """
+            # Keep this `dummy_catch_kwargs` reference to ensure
+            # what python vulture can pass at 100% unused-code
+            # confidence...
+            reraise = get(dummy_catch_kwargs, 'reraise', False)
+
             def outside_wrapper(wrapped_func):
                 @wraps(wrapped_func)
                 def inner_call(*args, **kwargs):
@@ -291,37 +296,36 @@ class ThisApplication(object):
         # Check the local ipv4 / ipv6 addresses for problems...
         self.check_ipv46_addrs(local_ipv46_addrs)
 
-        if True:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temporary_path = os.path.normpath(f"{temp_dir}/{original_filename}")
-                try:
-                    self.copy_file(src=f"{self.rst_prefix}.pdf", dst=temporary_path)
-                except shutil.SameFileError:
-                    warnings.warn("Source and temporary destination are the same file; no file copy was required.")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temporary_path = os.path.normpath(f"{temp_dir}/{original_filename}")
+            try:
+                self.copy_file(src=f"{self.rst_prefix}.pdf", dst=temporary_path)
+            except shutil.SameFileError:
+                warnings.warn("Source and temporary destination are the same file; no file copy was required.")
 
-                print("")
-                for v46addr in local_ipv46_addrs:
-                    # Skip binding to loopback addresses... this is pointless.  If it's sufficient to bind
-                    # to the loopback, then you dont need this script.
-                    if re.search(r"^(::1|127\.\d+\.\d+\.\d+)$", v46addr):
-                        continue
-                    elif ":" in v46addr:
-                        print(f"Local URL http://[{v46addr}]:{args.webserver_port}/")
-                    else:
-                        print(f"Local URL http://{v46addr}:{args.webserver_port}/")
+            print("")
+            for v46addr in local_ipv46_addrs:
+                # Skip binding to loopback addresses... this is pointless.  If it's sufficient to bind
+                # to the loopback, then you dont need this script.
+                if re.search(r"^(::1|127\.\d+\.\d+\.\d+)$", v46addr):
+                    continue
+                elif ":" in v46addr:
+                    print(f"Local URL http://[{v46addr}]:{args.webserver_port}/")
+                else:
+                    print(f"Local URL http://{v46addr}:{args.webserver_port}/")
 
-                ###############################################################
-                # Change to the temporary directory and start the Golang
-                #     webserver to serve files from `temp_dir` locally...
-                ###############################################################
-                print("")
-                try:
-                    return_code = call(
-                        f"{os.getcwd()}/filesystem_webserver --webserver_port {webserver_port} --webserver_directory {temp_dir}",
-                        shell=True
-                    )
-                except KeyboardInterrupt:
-                    print("    Webserver interrupted by KeyboardInterrupt.")
+            ###############################################################
+            # Change to the temporary directory and start the Golang
+            #     webserver to serve files from `temp_dir` locally...
+            ###############################################################
+            print("")
+            try:
+                return_code = call(
+                    f"{os.getcwd()}/filesystem_webserver --webserver_port {webserver_port} --webserver_directory {temp_dir}",
+                    shell=True
+                )
+            except KeyboardInterrupt:
+                print("    Webserver interrupted by KeyboardInterrupt.")
 
 @logger.catch(reraise=True)
 def parse_cli_args(sys_argv1):
