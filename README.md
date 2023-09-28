@@ -29,8 +29,8 @@ $ make build
 
 $ python ./rst2pdf_builder.py -r CoverLetter_20230927 -w 8080
 
-rst2pdf --stylesheet-path=/home/mpenning/.rst2pdf/ --stylesheets=rst2pdf_stylesheet.yml CoverLetter_20230927.rst -o CoverLetter_20230927.pdf
-/home/mpenning/rst2pdf_http.py:284: UserWarning: Source and destination are the same file; no file copy was required.
+rst2pdf --stylesheet-path=/home/my_user/.rst2pdf/ --stylesheets=rst2pdf_stylesheet.yml CoverLetter_20230927.rst -o CoverLetter_20230927.pdf
+/home/my_user/rst2pdf_http.py:284: UserWarning: Source and destination are the same file; no file copy was required.
   warnings.warn("Source and destination are the same file; no file copy was required.")
 
 Local URL http://10.0.0.6:8080/
@@ -42,14 +42,14 @@ Serving HTTP on :: port 8080 (http://[::]:8080/) ...
 # Full Syntax
 
 ```
-$ python rst2pdf_http.py -h
-usage: rst2pdf_http.py [-h] [-d STYLESHEET_DIRECTORY] [-e STYLESHEET_FILENAME] [-n {Mono,Sans,Serif}] [-s {10,12,14}] [-a {Bold,Italic,Oblique}] [-r RST_PREFIX]
-                       [-w WEBSERVER_PORT] [-t TERMINAL_ENCODING]
+$ python rst2pdf_http.py --help
+usage: rst2pdf_http.py [-h] [-d STYLESHEET_DIRECTORY] [-e STYLESHEET_FILENAME] [-n {Mono,Sans,Serif}] [-s {10,12,14}] [-a {Bold,Italic,Oblique}]
+                       [-r RST_PREFIX] [-w WEBSERVER_PORT] [-t TERMINAL_ENCODING]
 
 options:
   -h, --help            show this help message and exit
   -d STYLESHEET_DIRECTORY, --stylesheet_directory STYLESHEET_DIRECTORY
-                        rst2pdf stylesheet_directory; the default is '/home/mpenning/.rst2pdf/'.
+                        rst2pdf stylesheet_directory; the default is '/home/my_user/.rst2pdf/'.
   -e STYLESHEET_FILENAME, --stylesheet_filename STYLESHEET_FILENAME
                         rst2pdf stylesheet_filename; the default is 'rst2pdf_stylesheet.yml'.
   -n {Mono,Sans,Serif}, --font_name {Mono,Sans,Serif}
@@ -62,5 +62,6 @@ options:
                         restructured-text filename prefix; example: if rst file is 'my_document.rst', the prefix is 'my_document'
   -w WEBSERVER_PORT, --webserver_port WEBSERVER_PORT
                         Start a webserver on this port.
-  -t TERMINAL_ENCODING, --terminal_encoding TERMINAL_ENCODING 
+  -t TERMINAL_ENCODING, --terminal_encoding TERMINAL_ENCODING
+
 ```
