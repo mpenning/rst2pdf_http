@@ -16,6 +16,7 @@ import sys
 import os
 import re
 
+from rich.console import Console
 
 VALID_FONT_ATTRS = set({"Bold", "Italic", "Oblique"})
 VALID_FONT_NAMES = set({"Mono", "Sans", "Serif",}) # Sans is similar to Arial
@@ -25,7 +26,7 @@ DEFAULT_STYLESHEET_FILENAME = "rst2pdf_stylesheet.yml"
 DEFAULT_STYLESHEET_FONTATTR = []
 DEFAULT_STYLESHEET_FONTNAME = "Serif"
 DEFAULT_STYLESHEET_FONTSIZE = 12
-DEFAULT_TERMINAL_ENCODING = "UTF-8"
+DEFAULT_TERMINAL_ENCODING = Console().encoding
 
 LOGURU_IMPORTED = None
 try:
