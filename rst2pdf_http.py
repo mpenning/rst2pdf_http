@@ -227,8 +227,6 @@ class ThisApplication(object):
             capture_output=True,
         )
 
-        self.copy_file(src=f"{self.rst_prefix}.pdf", dst=self.current_path)
-
     def check_file_exists(self, filepath=None):
         """
         Check whether `filepath` exists; if so, return True.
@@ -294,7 +292,7 @@ class ThisApplication(object):
         with tempfile.TemporaryDirectory() as temp_dir:
             temporary_path = os.path.normpath(f"{temp_dir}/{original_filename}")
             try:
-                self.copy_file(src=original_filename, dst=temporary_path)
+                self.copy_file(src=f"{self.rst_prefix}.pdf", dst=temporary_path)
             except shutil.SameFileError:
                 warnings.warn("Source and temporary destination are the same file; no file copy was required.")
 
@@ -443,47 +441,7 @@ if __name__=="__main__":
         font_attrs=args.font_attrs,
     )
     app.convert_rst_to_pdf(stylesheet_directory=args.stylesheet_directory, stylesheet_filename=args.stylesheet_filename)
-
-    if False:
-        original_filename = os.path.normpath(f"{args.rst_prefix}".split('/')[-1]+".pdf")
-
-        # Copy from original directory to current-working-directory...
-        current_path = os.path.normpath(f"{os.getcwd()}/{original_filename}")
-        try:
-            shutil.copy(original_filename, current_path)
-        except shutil.SameFileError:
-            warnings.warn("Source and destination are the same file; no file copy was required.")
-
-        # Copy from original directory to temporary-directory...
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temporary_path = os.path.normpath(f"{temp_dir}/{original_filename}")
-            try:
-                shutil.copy(original_filename, temporary_path)
-            except shutil.SameFileError:
-                warnings.warn("Source and temporary destination are the same file; no file copy was required.")
-
-            # List local http URLs and start a temporary webserver...
-            if args.webserver_port > 0:
-                print("")
-                ipv46_addrs = list_local_ipaddrs(terminal_encoding=args.terminal_encoding)
-                for v46addr in ipv46_addrs:
-                    if re.search(r"^(::1|127\.\d+\.\d+\.\d+)$", v46addr):
-                        # I cant make the python webserver bind to linux loopback...
-                        continue
-                    elif ":" in v46addr:
-                        print(f"Local URL http://[{v46addr}]:{args.webserver_port}/")
-                    else:
-                        print(f"Local URL http://{v46addr}:{args.webserver_port}/")
-
-                print("")
-                # Change to the temporary directory and start a webserver to serve locally...
-                try:
-                    os.chdir(temp_dir)
-                    #return_code = call(f"python -m http.server --bind 0.0.0.0 {args.webserver_port}", shell=True)
-                    return_code = call(f"python -m http.server --bind :: {args.webserver_port}", shell=True)
-                except KeyboardInterrupt:
-                    print("    Webserver interrupted by KeyboardInterrupt.")
-
-
-
+    ipv46_addrs = list_local_ipaddrs(terminal_encoding=args.terminal_encoding)
+    if args.webserver_port > 0:
+        app.start_webserver(local_ipv46_addrs=ipv46_addrs, webserver_port=args.webserver_port)
 
