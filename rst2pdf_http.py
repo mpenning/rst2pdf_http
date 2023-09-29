@@ -360,11 +360,13 @@ class ThisApplication(object):
             ###############################################################
             try:
                 return_code = call(
-                    f"{os.getcwd()}/filesystem_webserver --webserverPort {webserver_port} --webserverDirectory {temp_dir}",
-                    shell=True
+                    shlex.split(f"{os.getcwd()}/filesystem_webserver --webserverPort {webserver_port} --webserverDirectory {temp_dir}"),
+                    shell=False,
                 )
             except KeyboardInterrupt:
-                print("    Webserver interrupted by KeyboardInterrupt.")
+                logger.info("    Webserver interrupted by KeyboardInterrupt.")
+            except Exception as eee:
+                logger.error(f"   {eee}: Cannot find ./filesystem_webserver.  Did you type `make build` before running the script?")
 
 @logger.catch(reraise=True)
 def parse_cli_args(sys_argv1):
