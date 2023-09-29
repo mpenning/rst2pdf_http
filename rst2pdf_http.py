@@ -5,6 +5,7 @@
 # subprocess.run() is generally-recommended instead of subprocess.call()
 from subprocess import run, call
 from functools import wraps
+from datetime import date
 import ipaddress
 import argparse
 import tempfile
@@ -69,6 +70,7 @@ class dummy_property(object):
                 return inner_call
         return outside_wrapper
 
+@logger.catch(reraise=True)
 def is_valid_ipv4addr(addr, raise_error=True):
     if isinstance(addr, str):
         try:
@@ -85,6 +87,7 @@ def is_valid_ipv4addr(addr, raise_error=True):
         else:
             return False
 
+@logger.catch(reraise=True)
 def is_valid_ipv6addr(addr, raise_error=True):
     if isinstance(addr, str):
         try:
@@ -126,6 +129,7 @@ class Stylesheet(object):
         self.font_attrs = font_attrs
 
     # This is on the Stylesheet() class
+    @logger.catch(reraise=True)
     def __repr__(self):
         return f"""<Stylesheet font_name: {self.font_name}, font_size: {self.font_size}, font_attrs: {self.font_attrs}>"""
 
@@ -211,7 +215,6 @@ class ThisApplication(object):
         start_directory = pathlib.posixpath.dirname(start_filepath)
 
         start_filename = start_pathobj.parts[-1]
-        start_filename_suffix = DEFAULT_START_FILENAME_SUFFIX
         start_filename_suffix = start_pathobj.suffix.split(".")[-1]
         start_filename_prefix = start_pathobj.stem
         current_directory = os.getcwd()
@@ -219,27 +222,18 @@ class ThisApplication(object):
         if "." in start_filename_suffix:
             raise ValueError(f"This is an invalid suffix: '{start_filename_suffix}'")
 
-        self.start_pathobj = start_pathobj
-        self.start_directory = start_directory
         self.start_filepath = start_filepath
         self.start_filename = start_filename
         self.start_filename_suffix = start_filename_suffix
-        self.start_filename_prefix = start_filename_prefix
-        self.current_directory = current_directory
-        self.current_filepath = os.path.normpath(f"{self.current_directory}/{start_filename}")
 
         if start_filename_suffix == "rst":
-            self.finish_directory = start_directory
-            self.finish_filepath = f"{start_filename_prefix}.pdf"
-            self.finish_filename_prefix = start_filename_prefix
+            self.finish_filename = f"{start_filename_prefix}.pdf"
+            self.finish_filepath = os.path.normpath(f"{start_directory}/{start_filename_prefix}.pdf")
             self.finish_filename_suffix = "pdf"
-            self.finish_filename = f"{start_filename_prefix}.{self.finish_filename_suffix}"
         else:
-            self.finish_directory = start_directory
-            self.finish_filepath = start_filepath
-            self.finish_filename_prefix = start_filename
-            self.finish_filename_suffix = start_filename_suffix
             self.finish_filename = start_filename
+            self.finish_filepath = start_filepath
+            self.finish_filename_suffix = start_filename_suffix
 
 
     @logger.catch(reraise=True)
@@ -261,6 +255,8 @@ class ThisApplication(object):
                 shell=False,
                 capture_output=True,
             )
+            self.check_file_exists(self.finish_filepath)
+
             if output_namedtuple.returncode > 0:
                 logger.error(output_namedtuple)
                 raise OSError(output_namedtuple.stderr.strip())
@@ -298,6 +294,9 @@ class ThisApplication(object):
         except shutil.SameFileError:
             warnings.warn("Source and destination are the same file; no file copy was required.")
             return False
+
+    def write_rst_imports(self):
+        today_as_words = datetime.date(2023, 9, 29).strftime("%A %B 29, 2023")
 
     @logger.catch(reraise=True)
     def check_ipv46_addrs(self, ipv46_addrs):
@@ -350,9 +349,9 @@ class ThisApplication(object):
                 if re.search(r"^(::1|127\.\d+\.\d+\.\d+)$", v46addr):
                     continue
                 elif ":" in v46addr:
-                    logger.success(f"Local URL http://[{v46addr}]:{args.webserver_port}/")
+                    logger.success(f"Local URL --> http://[{v46addr}]:{args.webserver_port}/")
                 else:
-                    logger.success(f"Local URL http://{v46addr}:{args.webserver_port}/")
+                    logger.success(f"Local URL --> http://{v46addr}:{args.webserver_port}/")
 
             ###############################################################
             # Change to the temporary directory and start the Golang
@@ -373,10 +372,10 @@ def parse_cli_args(sys_argv1):
     """
     Reference: https://docs.python.org/3/library/argparse.html
     """
-    if isinstance(sys_argv1, list):
+    if isinstance(sys_argv1, (list, tuple)):
         pass
     else:
-        raise ValueError("`sys_argv1` must be a list with CLI options from `sys.argv[1:]`")
+        raise ValueError("`sys_argv1` must be a list or tuple with CLI options from `sys.argv[1:]`")
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--start_filepath",
