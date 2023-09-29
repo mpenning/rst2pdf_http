@@ -14,6 +14,6 @@ rst2pdf
 #     - compiling readline needs libffi-dev and other dev packages...
 #
 # strictly-speaking rst2pdf_http.py does not require readline, but in the
-# long-run you wont regret the trouble to install it.
+# long-run you wont regret the trouble to compile and install it.
 #
 readline
