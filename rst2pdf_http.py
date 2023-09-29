@@ -366,7 +366,7 @@ class ThisApplication(object):
             except KeyboardInterrupt:
                 logger.info("    Webserver interrupted by KeyboardInterrupt.")
             except Exception as eee:
-                logger.error(f"   {eee}: Cannot find ./filesystem_webserver.  Did you type `make build` before running the script?")
+                logger.error(f"   {eee}: Did you type `make build` before running the script?")
 
 @logger.catch(reraise=True)
 def parse_cli_args(sys_argv1):
