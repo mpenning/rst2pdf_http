@@ -4,3 +4,16 @@ rich==12.6.0
 pytest==7.4.2
 vulture==2.9.1
 rst2pdf
+# readline makes the python repl up-arrows work...
+#
+# If you compiled python without readline, ensure you have readline installed
+# in your *nix distro and then you need to 'make clean' and recompile
+# and python (but it's worth it).
+#     I am leaving readline unversioned below in case you already have another
+#     readline version:
+#     - compiling readline needs libffi-dev and other dev packages...
+#
+# strictly-speaking rst2pdf_http.py does not require readline, but in the
+# long-run you wont regret the trouble to install it.
+#
+readline
