@@ -391,20 +391,6 @@ def parse_cli_args(sys_argv1):
         action="store",
         help="Start a webserver on this port."
     )
-    parser.add_argument("-d", "--stylesheet_directory",
-        type=str,
-        default=DEFAULT_STYLESHEET_DIRECTORY,
-        choices=None,
-        action="store",
-        help=f"rst2pdf stylesheet_directory; the default is '{DEFAULT_STYLESHEET_DIRECTORY}'.",
-    )
-    parser.add_argument("-e", "--stylesheet_filename",
-        type=str,
-        default=DEFAULT_STYLESHEET_FILENAME,
-        choices=None,
-        action="store",
-        help=f"rst2pdf stylesheet_filename; the default is '{DEFAULT_STYLESHEET_FILENAME}'.",
-    )
     parser.add_argument("-n", "--font_name",
         type=str,
         default=DEFAULT_STYLESHEET_FONTNAME,
@@ -425,6 +411,20 @@ def parse_cli_args(sys_argv1):
         choices=sorted(VALID_FONT_ATTRS),
         action="append",
         help="rst2pdf font attrs; default is no font attributes.",
+    )
+    parser.add_argument("-d", "--stylesheet_directory",
+        type=str,
+        default=DEFAULT_STYLESHEET_DIRECTORY,
+        choices=None,
+        action="store",
+        help=f"rst2pdf stylesheet_directory; the default is '{DEFAULT_STYLESHEET_DIRECTORY}'.",
+    )
+    parser.add_argument("-e", "--stylesheet_filename",
+        type=str,
+        default=DEFAULT_STYLESHEET_FILENAME,
+        choices=None,
+        action="store",
+        help=f"rst2pdf stylesheet_filename; the default is '{DEFAULT_STYLESHEET_FILENAME}'.",
     )
     parser.add_argument("-t", "--terminal_encoding",
         type=str,
