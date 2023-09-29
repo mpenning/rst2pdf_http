@@ -27,7 +27,7 @@ Assume I am building a pdf for a doocument saved as `CoverLetter_20230927.rst` a
 $ make build
 ...
 
-$ python ./rst2pdf_builder.py -r CoverLetter_20230927 -w 8080
+$ python ./rst2pdf_builder.py -f ~/CoverLetter_20230927.rst -w 8080
 
 rst2pdf --stylesheet-path=/home/my_user/.rst2pdf/ --stylesheets=rst2pdf_stylesheet.yml CoverLetter_20230927.rst -o CoverLetter_20230927.pdf
 /home/my_user/rst2pdf_http.py:284: UserWarning: Source and destination are the same file; no file copy was required.
@@ -43,25 +43,25 @@ Serving HTTP on :: port 8080 (http://[::]:8080/) ...
 
 ```
 $ python rst2pdf_http.py --help
-usage: rst2pdf_http.py [-h] [-d STYLESHEET_DIRECTORY] [-e STYLESHEET_FILENAME] [-n {Mono,Sans,Serif}] [-s {10,12,14}] [-a {Bold,Italic,Oblique}]
-                       [-r RST_PREFIX] [-w WEBSERVER_PORT] [-t TERMINAL_ENCODING]
+usage: rst2pdf_http.py [-h] [-f START_FILEPATH] [-w WEBSERVER_PORT] [-d STYLESHEET_DIRECTORY] [-e STYLESHEET_FILENAME] [-n {Mono,Sans,Serif}]
+                       [-s {10,12,14}] [-a {Bold,Italic,Oblique}] [-t TERMINAL_ENCODING]
 
 options:
   -h, --help            show this help message and exit
-  -d STYLESHEET_DIRECTORY, --stylesheet_directory STYLESHEET_DIRECTORY
-                        rst2pdf stylesheet_directory; the default is '/home/my_user/.rst2pdf/'.
-  -e STYLESHEET_FILENAME, --stylesheet_filename STYLESHEET_FILENAME
-                        rst2pdf stylesheet_filename; the default is 'rst2pdf_stylesheet.yml'.
+  -f START_FILEPATH, --start_filepath START_FILEPATH
+                        start filepath.
+  -w WEBSERVER_PORT, --webserver_port WEBSERVER_PORT
+                        Start a webserver on this port.
   -n {Mono,Sans,Serif}, --font_name {Mono,Sans,Serif}
                         rst2pdf font name; the default is 'Serif'.
   -s {10,12,14}, --font_size {10,12,14}
                         rst2pdf font size; default is '12'.
   -a {Bold,Italic,Oblique}, --font_attrs {Bold,Italic,Oblique}
                         rst2pdf font attrs; default is no font attributes.
-  -r RST_PREFIX, --rst_prefix RST_PREFIX
-                        restructured-text filename prefix; example: if rst file is 'my_document.rst', the prefix is 'my_document'
-  -w WEBSERVER_PORT, --webserver_port WEBSERVER_PORT
-                        Start a webserver on this port.
+  -d STYLESHEET_DIRECTORY, --stylesheet_directory STYLESHEET_DIRECTORY
+                        rst2pdf stylesheet_directory; the default is '/home/mpenning/.rst2pdf/'.
+  -e STYLESHEET_FILENAME, --stylesheet_filename STYLESHEET_FILENAME
+                        rst2pdf stylesheet_filename; the default is 'rst2pdf_stylesheet.yml'.
   -t TERMINAL_ENCODING, --terminal_encoding TERMINAL_ENCODING
 
 ```
