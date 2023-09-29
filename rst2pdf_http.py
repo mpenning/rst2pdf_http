@@ -2,13 +2,14 @@
 """
 
 """
-from functools import wraps
 # subprocess.run() is generally-recommended instead of subprocess.call()
 from subprocess import run, call
+from functools import wraps
 import ipaddress
 import argparse
 import tempfile
 import warnings
+import pathlib
 import shutil
 import shlex
 import yaml
@@ -17,6 +18,7 @@ import os
 import re
 
 from rich.console import Console
+from loguru import logger
 
 VALID_FONT_ATTRS = set({"Bold", "Italic", "Oblique"})
 VALID_FONT_NAMES = set({"Mono", "Sans", "Serif",}) # Sans is similar to Arial
@@ -27,53 +29,45 @@ DEFAULT_STYLESHEET_FONTATTR = []
 DEFAULT_STYLESHEET_FONTNAME = "Serif"
 DEFAULT_STYLESHEET_FONTSIZE = 12
 DEFAULT_TERMINAL_ENCODING = Console().encoding
+DEFAULT_START_FILENAME_SUFFIX = "rst"
 
-LOGURU_IMPORTED = None
-try:
-    from loguru import logger
-    LOGURU_IMPORTED = True
-    logger.info("loguru imported")
-except (NameError, ModuleNotFoundError):
-    LOGURU_IMPORTED = False
-    print("loguru NOT imported")
-
-    class logger(object):
+class dummy_property(object):
+    """
+    dummy_property.catch() implementation.
+    """
+    def catch(**dummy_catch_kwargs):
         """
-        Dummy loguru.logger.catch() implementation.
+        Catch of the logger.catch() class-method stub.
+
+        Usage:
+
+            @logger.catch(reraise=True)
+            def main():
+                pass
         """
-        def catch(**dummy_catch_kwargs):
-            """
-            Catch of the logger.catch() class-method stub.
+        # Keep this `dummy_catch_kwargs` reference to ensure
+        # what python vulture can pass at 100% unused-code
+        # confidence...
+        reraise = get(dummy_catch_kwargs, 'reraise', False)
 
-            Usage:
+        def outside_wrapper(wrapped_func):
+            @wraps(wrapped_func)
+            def inner_call(*args, **kwargs):
+                # add some meaningful manipulations later
+                response = wrapped_func(*args, **kwargs)
+                return response
 
-                @logger.catch(reraise=True)
-                def main():
-                    pass
-            """
-            # Keep this `dummy_catch_kwargs` reference to ensure
-            # what python vulture can pass at 100% unused-code
-            # confidence...
-            reraise = get(dummy_catch_kwargs, 'reraise', False)
+            @wraps(wrapped_func)
+            def inner_call_new(*args, **kwargs):
+                # add some meaningful manipulations later
+                response = wrapped_func(*args, **kwargs)
+                return response
 
-            def outside_wrapper(wrapped_func):
-                @wraps(wrapped_func)
-                def inner_call(*args, **kwargs):
-                    # add some meaningful manipulations later
-                    response = wrapped_func(*args, **kwargs)
-                    return response
-
-                @wraps(wrapped_func)
-                def inner_call_new(*args, **kwargs):
-                    # add some meaningful manipulations later
-                    response = wrapped_func(*args, **kwargs)
-                    return response
-
-                if wrapped_func is object.__new__:
-                    return inner_call_new
-                else:
-                    return inner_call
-            return outside_wrapper
+            if wrapped_func is object.__new__:
+                return inner_call_new
+            else:
+                return inner_call
+        return outside_wrapper
 
 def is_valid_ipv4addr(addr, raise_error=True):
     if isinstance(addr, str):
@@ -204,35 +198,80 @@ class Stylesheet(object):
             return font_name
 
 class ThisApplication(object):
-    def __init__(self, rst_prefix=None):
+
+    @logger.catch(reraise=True)
+    def __init__(self, start_filepath=None):
         """
-        `rst_prefix` is the string filename prefix of the rst file.
+        `start_filename` is the string filename.
         """
 
-        self.rst_prefix=rst_prefix
-        self.original_filename = os.path.normpath(f"{rst_prefix}".split('/')[-1]+".pdf")
-        self.current_path = os.path.normpath(f"{os.getcwd()}/{self.original_filename}")
+        self.check_file_exists(start_filepath)
 
+        start_pathobj = pathlib.PurePosixPath(start_filepath)
+        start_directory = pathlib.posixpath.dirname(start_filepath)
+
+        start_filename = start_pathobj.parts[-1]
+        start_filename_suffix = DEFAULT_START_FILENAME_SUFFIX
+        start_filename_suffix = start_pathobj.suffix.split(".")[-1]
+        start_filename_prefix = start_pathobj.stem
+        current_directory = os.getcwd()
+
+        if "." in start_filename_suffix:
+            raise ValueError(f"This is an invalid suffix: '{start_filename_suffix}'")
+
+        self.start_pathobj = start_pathobj
+        self.start_directory = start_directory
+        self.start_filepath = start_filepath
+        self.start_filename = start_filename
+        self.start_filename_suffix = start_filename_suffix
+        self.start_filename_prefix = start_filename_prefix
+        self.current_directory = current_directory
+        self.current_filepath = os.path.normpath(f"{self.current_directory}/{start_filename}")
+
+        if start_filename_suffix == "rst":
+            self.finish_directory = start_directory
+            self.finish_filepath = f"{start_filename_prefix}.pdf"
+            self.finish_filename_prefix = start_filename_prefix
+            self.finish_filename_suffix = "pdf"
+            self.finish_filename = f"{start_filename_prefix}.{self.finish_filename_suffix}"
+        else:
+            self.finish_directory = start_directory
+            self.finish_filepath = start_filepath
+            self.finish_filename_prefix = start_filename
+            self.finish_filename_suffix = start_filename_suffix
+            self.finish_filename = start_filename
+
+
+    @logger.catch(reraise=True)
     def create_stylesheet(self, directory=None, filename=None, font_name=None, font_size=None, font_attrs=None):
         ssobj = Stylesheet(font_name=font_name, font_size=font_size, font_attrs=font_attrs,)
         ssobj.save_stylesheet_yaml(directory=directory, filename=filename)
 
+    @logger.catch(reraise=True)
     def convert_rst_to_pdf(self, stylesheet_directory=None, stylesheet_filename=None):
-        self.check_file_exists(filepath=f"{self.rst_prefix}.rst")
-        self.check_file_exists(filepath=f"{stylesheet_directory}/{stylesheet_filename}")
+        if self.start_filename_suffix == "rst":
+            self.check_file_exists(filepath=f"{self.start_filepath}")
+            self.check_file_exists(filepath=f"{stylesheet_directory}/{stylesheet_filename}")
 
-        rst2pdf_cmd = f"rst2pdf --stylesheet-path={stylesheet_directory} --stylesheets={stylesheet_filename} {self.rst_prefix}.rst -o {self.rst_prefix}.pdf"
-        if LOGURU_IMPORTED is True:
+            rst2pdf_cmd = f"rst2pdf --stylesheet-path={stylesheet_directory} --stylesheets={stylesheet_filename} {self.start_filepath} -o {self.finish_filepath}"
             logger.info(f"{rst2pdf_cmd}")
+
+            output_namedtuple = run(
+                shlex.split(rst2pdf_cmd),
+                shell=False,
+                capture_output=True,
+            )
+            if output_namedtuple.returncode > 0:
+                logger.error(output_namedtuple)
+                raise OSError(output_namedtuple.stderr.strip())
+            else:
+                logger.debug(output_namedtuple)
+                return True
         else:
-            print(rst2pdf_cmd)
+            logger.warning(f"The start filename suffix is not 'rst'.  No conversion is implemented for '{self.start_filename_suffix}'.")
+            return False
 
-        output_namedtuple = run(
-            shlex.split(rst2pdf_cmd),
-            shell=False,
-            capture_output=True,
-        )
-
+    @logger.catch(reraise=True)
     def check_file_exists(self, filepath=None):
         """
         Check whether `filepath` exists; if so, return True.
@@ -241,11 +280,8 @@ class ThisApplication(object):
             raise ValueError(f"{filepath} must be a string.")
 
         abspath = os.path.abspath(os.path.expanduser(os.path.normpath(f"{filepath}")))
-        if LOGURU_IMPORTED is True:
-            logger.info(f"    filepath: {filepath}")
-            logger.info(f"        checking: {abspath}")
-        else:
-            print(f"       checking: {abspath}")
+        logger.info(f"    filepath: {filepath}")
+        logger.info(f"        checking: {abspath}")
 
         if os.path.exists(abspath):
             pass
@@ -253,6 +289,7 @@ class ThisApplication(object):
             raise OSError(f"{abspath} must exist.")
         return True
 
+    @logger.catch(reraise=True)
     def copy_file(self, src, dst):
         logger.debug(f"copy {src} {dst}")
         try:
@@ -262,6 +299,7 @@ class ThisApplication(object):
             warnings.warn("Source and destination are the same file; no file copy was required.")
             return False
 
+    @logger.catch(reraise=True)
     def check_ipv46_addrs(self, ipv46_addrs):
         """
         Walk all the strings in ipv46_addrs and return True if they are all valid.
@@ -283,6 +321,7 @@ class ThisApplication(object):
 
         return True
 
+    @logger.catch(reraise=True)
     def start_webserver(self, local_ipv46_addrs=None, webserver_port=0):
         """
         Create a temporary directory, copy files into it, and start webserver on all sockets.
@@ -291,15 +330,16 @@ class ThisApplication(object):
             error = "Webserver port must not be 0"
             raise ValueError(error)
 
-        original_filename = self.original_filename
+        start_filename = self.start_filename
 
         # Check the local ipv4 / ipv6 addresses for problems...
         self.check_ipv46_addrs(local_ipv46_addrs)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            temporary_path = os.path.normpath(f"{temp_dir}/{original_filename}")
+            temporary_finish_path = os.path.normpath(f"{temp_dir}/{self.finish_filename}")
             try:
-                self.copy_file(src=f"{self.rst_prefix}.pdf", dst=temporary_path)
+                self.copy_file(src=f"{self.start_filepath}", dst=temp_dir)
+                self.copy_file(src=f"{self.finish_filename}", dst=temporary_finish_path)
             except shutil.SameFileError:
                 warnings.warn("Source and temporary destination are the same file; no file copy was required.")
 
@@ -318,10 +358,9 @@ class ThisApplication(object):
             # Change to the temporary directory and start the Golang
             #     webserver to serve files from `temp_dir` locally...
             ###############################################################
-            print("")
             try:
                 return_code = call(
-                    f"{os.getcwd()}/filesystem_webserver --webserver_port {webserver_port} --webserver_directory {temp_dir}",
+                    f"{os.getcwd()}/filesystem_webserver --webserverPort {webserver_port} --webserverDirectory {temp_dir}",
                     shell=True
                 )
             except KeyboardInterrupt:
@@ -338,6 +377,20 @@ def parse_cli_args(sys_argv1):
         raise ValueError("`sys_argv1` must be a list with CLI options from `sys.argv[1:]`")
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--start_filepath",
+        type=str,
+        default=None,
+        choices=None,
+        action="store",
+        help="start filepath.",
+    )
+    parser.add_argument("-w", "--webserver_port",
+        type=int,
+        default=0,
+        choices=None,
+        action="store",
+        help="Start a webserver on this port."
+    )
     parser.add_argument("-d", "--stylesheet_directory",
         type=str,
         default=DEFAULT_STYLESHEET_DIRECTORY,
@@ -372,20 +425,6 @@ def parse_cli_args(sys_argv1):
         choices=sorted(VALID_FONT_ATTRS),
         action="append",
         help="rst2pdf font attrs; default is no font attributes.",
-    )
-    parser.add_argument("-r", "--rst_prefix",
-        type=str,
-        default=None,
-        choices=None,
-        action="store",
-        help="restructured-text filename prefix; example: if rst file is 'my_document.rst', the prefix is 'my_document'",
-    )
-    parser.add_argument("-w", "--webserver_port",
-        type=int,
-        default=0,
-        choices=None,
-        action="store",
-        help="Start a webserver on this port."
     )
     parser.add_argument("-t", "--terminal_encoding",
         type=str,
@@ -439,7 +478,7 @@ def list_local_ipaddrs(**kwargs):
 if __name__=="__main__":
 
     args = parse_cli_args(sys.argv[1:])
-    app = ThisApplication(rst_prefix=args.rst_prefix)
+    app = ThisApplication(start_filepath=args.start_filepath)
     app.create_stylesheet(
         directory=args.stylesheet_directory,
         filename=args.stylesheet_filename,
