@@ -281,7 +281,7 @@ class ThisApplication(object):
 
         abspath = os.path.abspath(os.path.expanduser(os.path.normpath(f"{filepath}")))
         logger.info(f"    filepath: {filepath}")
-        logger.info(f"        checking: {abspath}")
+        logger.debug(f"        checking: {abspath}")
 
         if os.path.exists(abspath):
             pass
@@ -350,9 +350,9 @@ class ThisApplication(object):
                 if re.search(r"^(::1|127\.\d+\.\d+\.\d+)$", v46addr):
                     continue
                 elif ":" in v46addr:
-                    print(f"Local URL http://[{v46addr}]:{args.webserver_port}/")
+                    logger.success(f"Local URL http://[{v46addr}]:{args.webserver_port}/")
                 else:
-                    print(f"Local URL http://{v46addr}:{args.webserver_port}/")
+                    logger.success(f"Local URL http://{v46addr}:{args.webserver_port}/")
 
             ###############################################################
             # Change to the temporary directory and start the Golang
