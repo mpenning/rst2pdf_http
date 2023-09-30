@@ -25,7 +25,10 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# Local packaging
 go.sum
+filesystem_webserver
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
