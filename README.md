@@ -50,7 +50,7 @@ This project can automate parts of your document.  My use-case is generating a R
 
 # FAQ
 
-- Should I copy and run this script outside the git repo?  Maybe, some things will break.
+- Can I copy and run this script outside this git repo?  Maybe, but some things will break; you really shouldn't do that.
 - Why don't I see today's date updated?  Be sure you call this script with `-i`.
 - When I use `..include:: foo` in my RestructuredText document, why do I see this error: `(SEVERE/4) Problems with "include" directive path:`?  Your RestructuredText import path in your document is wrong.
 - Is this script supported on a Read-Only filesystem?  No.
@@ -60,13 +60,20 @@ This project can automate parts of your document.  My use-case is generating a R
 
 ```
 $ python rst2pdf_http.py --help
+
 usage: rst2pdf_http.py [-h] [-f START_FILEPATH] [-w WEBSERVER_PORT] [-i] [-n {Mono,Sans,Serif}] [-s {10,12,14}] [-a {Bold,Italic,Oblique}] [-d STYLESHEET_DIRECTORY]
-                       [-e STYLESHEET_FILENAME] [-t TERMINAL_ENCODING]
+                       [-e STYLESHEET_FILENAME] [-t TERMINAL_ENCODING] [-v]
+
+Build a PDF from RestructuredText and serve via Go HTTP
 
 optional arguments:
   -h, --help            show this help message and exit
+
+required:
   -f START_FILEPATH, --start_filepath START_FILEPATH
                         start filepath.
+
+optional:
   -w WEBSERVER_PORT, --webserver_port WEBSERVER_PORT
                         Start a webserver on this port.
   -i, --write_rst_imports
@@ -82,5 +89,7 @@ optional arguments:
   -e STYLESHEET_FILENAME, --stylesheet_filename STYLESHEET_FILENAME
                         rst2pdf stylesheet_filename; the default is 'rst2pdf_stylesheet.yml'.
   -t TERMINAL_ENCODING, --terminal_encoding TERMINAL_ENCODING
+                        .
+  -v, --version         Output the script version number to stdout.
 
 ```
