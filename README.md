@@ -51,6 +51,7 @@ This project can automate parts of your document.  My use-case is generating a R
 # FAQ
 
 - Can I copy and run this script outside this git repo?  Maybe, but some things will break; you really shouldn't do that.
+- Do I need to run 'make build' every time?  You only need to run 'make build' once per rst2pdf_http.py version.
 - Why don't I see today's date updated?  Be sure you call this script with `-i`.
 - When I use `..include:: foo` in my RestructuredText document, why do I see this error: `(SEVERE/4) Problems with "include" directive path:`?  Your RestructuredText import path in your document is wrong.
 - Is this script supported on a Read-Only filesystem?  No.
