@@ -462,73 +462,80 @@ def parse_cli_args(sys_argv1):
     else:
         raise ValueError("`sys_argv1` must be a list or tuple with CLI options from `sys.argv[1:]`")
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--start_filepath",
+    parser = argparse.ArgumentParser(
+        prog=os.path.basename(__file__),
+        description="Build a PDF from RestructuredText and serve via Go HTTP",
+        add_help=True,
+    )
+    parser_required = parser.add_argument_group("required")
+    parser_required.add_argument("-f", "--start_filepath",
         type=str,
         default=None,
         choices=None,
         action="store",
         help="start filepath.",
     )
-    parser.add_argument("-w", "--webserver_port",
+    parser_optional = parser.add_argument_group("optional")
+    parser_optional.add_argument("-w", "--webserver_port",
         type=int,
         default=0,
         choices=None,
         action="store",
         help="Start a webserver on this port."
     )
-    parser.add_argument("-v", "--version",
-        default=False,
-        action="store_true",
-        help=f"Output the script version number to stdout."
-    )
-    parser.add_argument("-i", "--write_rst_imports",
+    parser_optional.add_argument("-i", "--write_rst_imports",
         default=False,
         action="store_true",
         help=f"Write the canned rst imports."
     )
-    parser.add_argument("-n", "--font_name",
+    parser_optional.add_argument("-n", "--font_name",
         type=str,
         default=DEFAULT_STYLESHEET_FONTNAME,
         choices=sorted(VALID_FONT_NAMES),
         action="store",
         help=f"rst2pdf font name; the default is '{DEFAULT_STYLESHEET_FONTNAME}'.",
     )
-    parser.add_argument("-s", "--font_size",
+    parser_optional.add_argument("-s", "--font_size",
         type=int,
         default=DEFAULT_STYLESHEET_FONTSIZE,
         choices=sorted(VALID_FONT_SIZES),
         action="store",
         help="rst2pdf font size; default is '12'.",
     )
-    parser.add_argument("-a", "--font_attrs",
+    parser_optional.add_argument("-a", "--font_attrs",
         type=str,
         default=DEFAULT_STYLESHEET_FONTATTR,
         choices=sorted(VALID_FONT_ATTRS),
         action="append",
         help="rst2pdf font attrs; default is no font attributes.",
     )
-    parser.add_argument("-d", "--stylesheet_directory",
+    parser_optional.add_argument("-d", "--stylesheet_directory",
         type=str,
         default=DEFAULT_STYLESHEET_DIRECTORY,
         choices=None,
         action="store",
         help=f"rst2pdf stylesheet_directory; the default is '{DEFAULT_STYLESHEET_DIRECTORY}'.",
     )
-    parser.add_argument("-e", "--stylesheet_filename",
+    parser_optional.add_argument("-e", "--stylesheet_filename",
         type=str,
         default=DEFAULT_STYLESHEET_FILENAME,
         choices=None,
         action="store",
         help=f"rst2pdf stylesheet_filename; the default is '{DEFAULT_STYLESHEET_FILENAME}'.",
     )
-    parser.add_argument("-t", "--terminal_encoding",
+    parser_optional.add_argument("-t", "--terminal_encoding",
         type=str,
         default="UTF-8",
         choices=None,
         action="store",
         help="."
     )
+    parser_optional.add_argument("-v", "--version",
+        default=False,
+        action="store_true",
+        help=f"Output the script version number to stdout."
+    )
+
     args = parser.parse_args(sys_argv1)
 
     # Special-case: handle the --version argument...
