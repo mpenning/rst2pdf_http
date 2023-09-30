@@ -1,4 +1,4 @@
-PyYAML==6.0
+PyYAML==6.0.1
 loguru==0.7.2
 rich==12.6.0
 pytest==7.4.2
@@ -7,13 +7,13 @@ rst2pdf
 # readline makes the python repl up-arrows work...
 #
 # If you compiled python without readline, ensure you have readline installed
-# in your *nix distro and then you need to 'make clean' and recompile
-# and python (but it's worth it).
-#     I am leaving readline unversioned below in case you already have another
-#     readline version:
-#     - compiling readline needs libffi-dev and other dev packages...
+# in your *nix distro; then you need to 'make clean' in your Python source
+# tree, and recompile python (but it's worth it).
+#
+# I am leaving readline unversioned below in case you already have another
+# readline version.
 #
 # strictly-speaking rst2pdf_http.py does not require readline, but in the
-# long-run you wont regret the trouble to compile and install it.
+# long-run you wont regret the trouble to compile python with.
 #
 readline
