@@ -5,21 +5,22 @@
 # subprocess.run() is generally-recommended instead of subprocess.call()
 from subprocess import run, call
 from functools import wraps
-from datetime import date
 import ipaddress
+import datetime
 import argparse
 import tempfile
 import warnings
 import pathlib
 import shutil
 import shlex
-import yaml
+import json
 import sys
 import os
 import re
 
 from rich.console import Console
 from loguru import logger
+import yaml
 
 VALID_FONT_ATTRS = set({"Bold", "Italic", "Oblique"})
 VALID_FONT_NAMES = set({"Mono", "Sans", "Serif",}) # Sans is similar to Arial
@@ -32,9 +33,13 @@ DEFAULT_STYLESHEET_FONTSIZE = 12
 DEFAULT_TERMINAL_ENCODING = Console().encoding
 DEFAULT_START_FILENAME_SUFFIX = "rst"
 
-class dummy_property(object):
+class DummyLoggerProperty(object):
     """
-    dummy_property.catch() implementation.
+    DummyLoggerProperty.catch() implementation.
+
+    This was originally included in case Loguru to fake ``logger.catch()``; however, this approach was abandoned.  This class remains as a reminder of the aborted effort.
+
+    If this class was used, it would have been renamed as ``logger`` and defined in a try / except block while importing ``loguru``.
     """
     def catch(**dummy_catch_kwargs):
         """
@@ -71,38 +76,45 @@ class dummy_property(object):
         return outside_wrapper
 
 @logger.catch(reraise=True)
-def is_valid_ipv4addr(addr, raise_error=True):
-    if isinstance(addr, str):
-        try:
-            ipaddress.IPv4Address(addr)
-            return True
-        except Exception:
-            if raise_error:
-                raise ValueError(f"{addr} is not a valid IPv4 Address.")
-            else:
-                return False
-    else:
-        if raise_error:
-            raise ValueError(f"{addr} must be a string IPv4 address")
-        else:
-            return False
+def check_file_exists(filepath=None):
+    """
+    Check whether ``filepath`` exists; if so, return True.
 
-@logger.catch(reraise=True)
-def is_valid_ipv6addr(addr, raise_error=True):
-    if isinstance(addr, str):
-        try:
-            ipaddress.IPv6Address(addr)
-            return True
-        except Exception:
-            if raise_error:
-                raise ValueError(f"{addr} is not a valid IPv6 Address.")
-            else:
-                return False
+    Arguments
+    ---------
+
+    :param filepath: Filepath to be checked
+    :type src: str
+
+    Raises
+    ------
+
+    ``OSError()`` if ``filepath`` does not exist.
+
+    Returns
+    -------
+
+    A boolean indicating that the file exists.
+
+
+    :Example:
+
+    >>> check_file_exists("/etc/passwd")
+    True
+
+    """
+    if not isinstance(filepath, str):
+        raise ValueError(f"{filepath} must be a string.")
+
+    abspath = os.path.abspath(os.path.expanduser(os.path.normpath(f"{filepath}")))
+    logger.info(f"    filepath: {filepath}")
+    logger.debug(f"        checking: {abspath}")
+
+    if os.path.exists(abspath):
+        return True
     else:
-        if raise_error:
-            raise ValueError(f"{addr} must be a string IPv6 address")
-        else:
-            return False
+        raise OSError(f"{abspath} must exist.")
+
 
 class Stylesheet(object):
 
@@ -110,7 +122,7 @@ class Stylesheet(object):
     @logger.catch(reraise=True)
     def __init__(self, font_name, font_size=12, font_attrs=None):
         """
-        rst2pdf Stylesheet.
+        Write a custom rst2pdf Stylesheet with ``font_name``, ``font_size` and ``font_attrs``.
         """
         if font_attrs is None:
             font_attrs = []
@@ -209,7 +221,7 @@ class ThisApplication(object):
         `start_filename` is the string filename.
         """
 
-        self.check_file_exists(start_filepath)
+        check_file_exists(start_filepath)
 
         start_pathobj = pathlib.PurePosixPath(start_filepath)
         start_directory = pathlib.posixpath.dirname(start_filepath)
@@ -235,6 +247,18 @@ class ThisApplication(object):
             self.finish_filepath = start_filepath
             self.finish_filename_suffix = start_filename_suffix
 
+        self.rst2pdf_home = DEFAULT_STYLESHEET_DIRECTORY
+
+        # Technically we will call
+        if len(sys.argv) > 0:
+            self.cli_args = parse_cli_args(sys.argv[1:])
+        else:
+            self.cli_args = None
+
+        self.custom_imports_directory = os.path.normpath(f"{self.rst2pdf_home}/custom_imports")
+        # Write text files to rst_imports/ to be imported
+        self.write_custom_imports_directory()
+        self.write_custom_rst_imports()
 
     @logger.catch(reraise=True)
     def create_stylesheet(self, directory=None, filename=None, font_name=None, font_size=None, font_attrs=None):
@@ -244,8 +268,8 @@ class ThisApplication(object):
     @logger.catch(reraise=True)
     def convert_rst_to_pdf(self, stylesheet_directory=None, stylesheet_filename=None):
         if self.start_filename_suffix == "rst":
-            self.check_file_exists(filepath=f"{self.start_filepath}")
-            self.check_file_exists(filepath=f"{stylesheet_directory}/{stylesheet_filename}")
+            check_file_exists(filepath=f"{self.start_filepath}")
+            check_file_exists(filepath=f"{stylesheet_directory}/{stylesheet_filename}")
 
             rst2pdf_cmd = f"rst2pdf --stylesheet-path={stylesheet_directory} --stylesheets={stylesheet_filename} {self.start_filepath} -o {self.finish_filepath}"
             logger.info(f"{rst2pdf_cmd}")
@@ -255,7 +279,7 @@ class ThisApplication(object):
                 shell=False,
                 capture_output=True,
             )
-            self.check_file_exists(self.finish_filepath)
+            check_file_exists(self.finish_filepath)
 
             if output_namedtuple.returncode > 0:
                 logger.error(output_namedtuple)
@@ -267,26 +291,35 @@ class ThisApplication(object):
             logger.warning(f"The start filename suffix is not 'rst'.  No conversion is implemented for '{self.start_filename_suffix}'.")
             return False
 
-    @logger.catch(reraise=True)
-    def check_file_exists(self, filepath=None):
-        """
-        Check whether `filepath` exists; if so, return True.
-        """
-        if not isinstance(filepath, str):
-            raise ValueError(f"{filepath} must be a string.")
-
-        abspath = os.path.abspath(os.path.expanduser(os.path.normpath(f"{filepath}")))
-        logger.info(f"    filepath: {filepath}")
-        logger.debug(f"        checking: {abspath}")
-
-        if os.path.exists(abspath):
-            pass
-        else:
-            raise OSError(f"{abspath} must exist.")
-        return True
 
     @logger.catch(reraise=True)
     def copy_file(self, src, dst):
+        """copy_file(src, dst)
+
+        Copy a file.
+
+        Arguments
+        ---------
+
+        :param src: Filepath of the source
+        :type src: str
+        :param dst: Filepath of the destination
+        :type dst: str
+
+        Returns
+        -------
+
+        A boolean indicating success or failure.
+
+        - True: Copy success.
+        - False: Copy failure.
+
+        :Example:
+
+        >>> app = ThisApplication()
+        >>> app.copy_file("/tmp/this.txt", "/tmp/that.txt")
+
+        """
         logger.debug(f"copy {src} {dst}")
         try:
             shutil.copy(src, dst)
@@ -294,9 +327,40 @@ class ThisApplication(object):
         except shutil.SameFileError:
             warnings.warn("Source and destination are the same file; no file copy was required.")
             return False
+        except Exception as eee:
+            logger.error(f"{eee}")
+            return False
 
-    def write_rst_imports(self):
-        today_as_words = datetime.date(2023, 9, 29).strftime("%A %B 29, 2023")
+    def write_custom_imports_directory(self):
+        try:
+            os.makedirs(f"{self.rst2pdf_home}/custom_imports")
+        except FileExistsError:
+            # Directory already exists...
+            pass
+        except Exception as eee:
+            logger.critical(f"{eee}")
+            raise OSError(f"{eee}")
+        return True
+
+    def write_custom_rst_imports(self):
+        """write_custom_rst_imports()
+
+        Write custom imports if the script is called with ``-i``.
+        """
+
+        if self.cli_args.write_rst_imports is True:
+            self.write_localtime_today_as_words()
+
+    def write_localtime_today_as_words(self):
+        today = datetime.date.today()
+        day = today.day
+        month = today.month
+        year = today.year
+        output_filepath = os.path.normpath(f"{self.custom_imports_directory}/localtime_today_as_words.rst")
+        today_as_words = datetime.date(year, month, day).strftime(f"%A %B {day}, {year}")
+        logger.info(f"writing '{today_as_words}' to {output_filepath}")
+        with open(output_filepath, 'w+') as fh:
+            fh.write(today_as_words)
 
     @logger.catch(reraise=True)
     def check_ipv46_addrs(self, ipv46_addrs):
@@ -338,7 +402,7 @@ class ThisApplication(object):
             temporary_finish_path = os.path.normpath(f"{temp_dir}/{self.finish_filename}")
             try:
                 self.copy_file(src=f"{self.start_filepath}", dst=temp_dir)
-                self.copy_file(src=f"{self.finish_filename}", dst=temporary_finish_path)
+                self.copy_file(src=f"{self.finish_filepath}", dst=temporary_finish_path)
             except shutil.SameFileError:
                 warnings.warn("Source and temporary destination are the same file; no file copy was required.")
 
@@ -368,6 +432,27 @@ class ThisApplication(object):
                 logger.error(f"   {eee}: Did you type `make build` before running the script?")
 
 @logger.catch(reraise=True)
+def get_version_number(version_filename="resources/version.json"):
+    version_digits_file = None
+    version_digits = None
+    try:
+        with open(version_filename, "r") as fh:
+            version_digits_file = fh.read().strip()
+    except Exception as eee:
+        logger.critical(f"{eee}")
+        raise OSError(f"{eee}")
+
+    version_digits = [str(ii) for ii in json.loads(version_digits_file)]
+
+    if isinstance(version_digits, list):
+        version = ".".join(version_digits)
+        return version
+    else:
+        error = f"version_digits: {version_digits} must be a list."
+        logger.critical(error)
+        raise ValueError(error)
+
+@logger.catch(reraise=True)
 def parse_cli_args(sys_argv1):
     """
     Reference: https://docs.python.org/3/library/argparse.html
@@ -391,6 +476,16 @@ def parse_cli_args(sys_argv1):
         choices=None,
         action="store",
         help="Start a webserver on this port."
+    )
+    parser.add_argument("-v", "--version",
+        default=False,
+        action="store_true",
+        help=f"Output the script version number to stdout."
+    )
+    parser.add_argument("-i", "--write_rst_imports",
+        default=False,
+        action="store_true",
+        help=f"Write the canned rst imports."
     )
     parser.add_argument("-n", "--font_name",
         type=str,
@@ -435,7 +530,112 @@ def parse_cli_args(sys_argv1):
         help="."
     )
     args = parser.parse_args(sys_argv1)
+
+    # Special-case: handle the --version argument...
+    if args.version is True:
+        today = datetime.date.today()
+        year = today.year
+        if year != 2023:
+            year = f"2023-{year}"
+
+        try:
+            version = get_version_number()
+            print(f"rst2pdf_http.py version: {version}; Copyright {year} David Michael Pennington.")
+            sys.exit(0)
+        except Exception as eee:
+            raise OSError(f"{eee}")
+
     return args
+
+@logger.catch(reraise=True)
+def is_valid_ipv4addr(addr, raise_error=True):
+    """
+    Check whether ``addr`` is a valid IPv4 address; if so, return True.
+
+    Arguments
+    ---------
+
+    :param addr: IPv4 address to be checked
+    :type addr: str
+
+    Raises
+    ------
+
+    If ``raise_error`` is True, raise ``ValueError()`` if ``addr`` is not valid.
+
+    Returns
+    -------
+
+    A boolean indicating that the address is valid.
+
+
+    :Example:
+
+    >>> is_valid_ipv4_addr("127.0.0.1", raise_error=False)
+    True
+    >>> is_valid_ipv4_addr("scrambled eggs", raise_error=False)
+    False
+
+    """
+    if isinstance(addr, str):
+        try:
+            ipaddress.IPv4Address(addr)
+            return True
+        except Exception:
+            if raise_error:
+                raise ValueError(f"{addr} is not a valid IPv4 Address.")
+            else:
+                return False
+    else:
+        if raise_error:
+            raise ValueError(f"{addr} must be a string IPv4 address")
+        else:
+            return False
+
+@logger.catch(reraise=True)
+def is_valid_ipv6addr(addr, raise_error=True):
+    """
+    Check whether ``addr`` is a valid IPv6 address; if so, return True.
+
+    Arguments
+    ---------
+
+    :param addr: IPv6 address to be checked
+    :type addr: str
+
+    Raises
+    ------
+
+    If ``raise_error`` is True, raise ``ValueError()`` if ``addr`` is not valid.
+
+    Returns
+    -------
+
+    A boolean indicating that the address is valid.
+
+
+    :Example:
+
+    >>> is_valid_ipv6_addr("::1", raise_error=False)
+    True
+    >>> is_valid_ipv6_addr("scrambled eggs", raise_error=False)
+    False
+
+    """
+    if isinstance(addr, str):
+        try:
+            ipaddress.IPv6Address(addr)
+            return True
+        except Exception:
+            if raise_error:
+                raise ValueError(f"{addr} is not a valid IPv6 Address.")
+            else:
+                return False
+    else:
+        if raise_error:
+            raise ValueError(f"{addr} must be a string IPv6 address")
+        else:
+            return False
 
 @logger.catch(reraise=True)
 def nix_list_local_ipaddrs(terminal_encoding=None):
