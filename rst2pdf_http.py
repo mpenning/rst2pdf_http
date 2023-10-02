@@ -406,22 +406,24 @@ class ThisApplication(object):
             except shutil.SameFileError:
                 warnings.warn("Source and temporary destination are the same file; no file copy was required.")
 
-            print("")
-            for v46addr in local_ipv46_addrs:
-                # Skip binding to loopback addresses... this is pointless.  If it's sufficient to bind
-                # to the loopback, then you dont need this script.
-                if re.search(r"^(::1|127\.\d+\.\d+\.\d+)$", v46addr):
-                    continue
-                elif ":" in v46addr:
-                    logger.success(f"Local URL --> http://[{v46addr}]:{args.webserver_port}/")
-                else:
-                    logger.success(f"Local URL --> http://{v46addr}:{args.webserver_port}/")
 
             ###############################################################
             # Change to the temporary directory and start the Golang
             #     webserver to serve files from `temp_dir` locally...
             ###############################################################
             try:
+
+                print("")
+                for v46addr in local_ipv46_addrs:
+                    # Skip binding to loopback addresses... this is pointless.  If it's sufficient to bind
+                    # to the loopback, then you dont need this script.
+                    if re.search(r"^(::1|127\.\d+\.\d+\.\d+)$", v46addr):
+                        continue
+                    elif ":" in v46addr:
+                        logger.success(f"Local URL --> http://[{v46addr}]:{args.webserver_port}/")
+                    else:
+                        logger.success(f"Local URL --> http://{v46addr}:{args.webserver_port}/")
+
                 return_code = call(
                     shlex.split(f"{os.getcwd()}/filesystem_webserver --webserverPort {webserver_port} --webserverDirectory {temp_dir}"),
                     shell=False,
