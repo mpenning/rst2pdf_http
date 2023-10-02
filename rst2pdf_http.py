@@ -548,7 +548,7 @@ def parse_cli_args(sys_argv1):
 
         try:
             version = get_version_number()
-            print(f"rst2pdf_http.py version: {version}; Copyright {all_years} David Michael Pennington.")
+            print(f"{__file__} version: {version}; Copyright {all_years} David Michael Pennington.")
             sys.exit(0)
         except Exception as eee:
             raise OSError(f"{eee}")
