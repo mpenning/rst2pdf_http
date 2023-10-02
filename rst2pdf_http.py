@@ -541,13 +541,14 @@ def parse_cli_args(sys_argv1):
     # Special-case: handle the --version argument...
     if args.version is True:
         today = datetime.date.today()
-        year = today.year
-        if year != 2023:
-            year = f"2023-{year}"
+        this_year = today.year
+        start_year = 2023
+        if this_year != start_year:
+            all_years = f"{start_year}-{year}"
 
         try:
             version = get_version_number()
-            print(f"rst2pdf_http.py version: {version}; Copyright {year} David Michael Pennington.")
+            print(f"rst2pdf_http.py version: {version}; Copyright {all_years} David Michael Pennington.")
             sys.exit(0)
         except Exception as eee:
             raise OSError(f"{eee}")
