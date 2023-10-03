@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/gleich/logoru v0.0.0-20230101033757-d86cd895c7a1
 	github.com/gorilla/handlers v1.5.1
-	github.com/spf13/pflag v1.0.4
+	github.com/spf13/pflag v1.0.5
 )
 
 require (
