@@ -547,10 +547,12 @@ def parse_cli_args(sys_argv1):
         start_year = 2023
         if this_year != start_year:
             all_years = f"{start_year}-{year}"
+        else:
+            all_years = f"{start_year}"
 
         try:
             version = get_version_number()
-            print(f"{__file__} version: {version}; Copyright {all_years} David Michael Pennington.")
+            print(f"{pathlib.PurePosixPath(__file__).parts[-1]} version: {version}; Copyright {all_years} David Michael Pennington.")
             sys.exit(0)
         except Exception as eee:
             raise OSError(f"{eee}")
