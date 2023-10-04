@@ -14,6 +14,7 @@ import pathlib
 import shutil
 import shlex
 import json
+import time
 import sys
 import os
 import re
@@ -22,9 +23,12 @@ from rich.console import Console
 from loguru import logger
 import yaml
 
-VALID_FONT_ATTRS = set({"Bold", "Italic", "Oblique"})
+VALID_PAGE_UNITS = set({"cm", "in",})
+VALID_PAGE_SIZES = set({"A0", "A1", "A2", "A3", "A4", "A5", "A6", "B0", "B1", "B2", "B3", "B4", "B5", "B6",})
+VALID_PAGE_ORIENTATIONS = set({"Landscape", "Portriat",})
+VALID_FONT_ATTRS = set({"Bold", "Italic", "Oblique",})
 VALID_FONT_NAMES = set({"Mono", "Sans", "Serif",}) # Sans is similar to Arial
-VALID_FONT_SIZES = set({10, 12, 14,})
+VALID_FONT_SIZES = set({8, 10, 12, 14,})
 DEFAULT_STYLESHEET_DIRECTORY = os.path.expanduser("~/.rst2pdf/")
 DEFAULT_STYLESHEET_FILENAME = "rst2pdf_stylesheet.yml"
 DEFAULT_STYLESHEET_FONTATTR = []
@@ -120,7 +124,7 @@ class Stylesheet(object):
 
     # This is on the Stylesheet() class
     @logger.catch(reraise=True)
-    def __init__(self, font_name, font_size=12, font_attrs=None):
+    def __init__(self, font_attrs=None, **kwargs):
         """
         Write a custom rst2pdf Stylesheet with ``font_name``, ``font_size` and ``font_attrs``.
         """
@@ -136,9 +140,12 @@ class Stylesheet(object):
         else:
             raise ValueError(f"Stylesheet(font_attrs='''{font_attrs}''' {type(font_attrs)}) must be a `list` or None.")
 
-        self.font_name = font_name
-        self.font_size = font_size
+        self.font_name = kwargs.get("font_name", None)
+        self.font_size = kwargs.get("font_size", None)
         self.font_attrs = font_attrs
+
+        self.page_size = kwargs.get("page_size", None)
+        self.page_orientation = kwargs.get("page_orientation", None)
 
     # This is on the Stylesheet() class
     @logger.catch(reraise=True)
@@ -156,49 +163,14 @@ class Stylesheet(object):
         filepath = os.path.normpath(f"{directory}/{filename}")
         with open(filepath, 'w') as fh:
             yaml.dump(
-                data=self.get_rst2pdf_data_dict(font_name=self.font_name),
+                data=self.get_rst2pdf_data_dict(),
                 stream=fh,
                 default_flow_style=False
             )
 
     # This is on the Stylesheet() class
     @logger.catch(reraise=True)
-    def get_rst2pdf_data_dict(self, font_name=None):
-        """
-        Create the most essential rst2pdf stylesheet from scratch.
-        """
-        return {
-            "styles": {
-                "base": {
-                        "alignment": "LEFT",
-                        "allowOrphans": False,
-                        "backColor": None,
-                        "borderColor": None,
-                        "borderPadding": 0,
-                        "borderRadius": None,
-                        "borderWidth": 0,
-                        "commands": [],
-                        "firstLineIndent": 0,
-                        "fontName": self.get_rst2pdf_fontName(font_name=font_name),
-                        "fontSize": self.font_size,
-                        "hyphenation": False,
-                        "leading": self.font_size,
-                        "leftIndent": 0,
-                        "parent": None,
-                        "rightIndent": 0,
-                        "spaceAfter": 0,
-                        "spaceBefore": 0,
-                        "strike": False,
-                        "textColor": "black",
-                        "underline": False,
-                        "wordwrap": None,
-                },
-            },
-        }
-
-    # This is on the Stylesheet() class
-    @logger.catch(reraise=True)
-    def get_rst2pdf_fontName(self, font_name=""):
+    def get_rst2pdf_styles_fontName(self, font_name=""):
         """Get the rst2pdf fontName, which usually looks like: 'fontMonoBoldItalic'."""
         if font_name in VALID_FONT_NAMES:
             pass
@@ -212,6 +184,89 @@ class Stylesheet(object):
         else:
             font_name = "font" + font_name
             return font_name
+
+    # This is on the Stylesheet() class
+    @logger.catch(reraise=True)
+    def get_rst2pdf_pageSetup_size(self, page_size="", page_orientation="Portriat"):
+        """Get the rst2pdf pageSetup size, which usually looks like: 'A5-landscape'."""
+        if page_size in VALID_PAGE_SIZES:
+            pass
+        else:
+            raise ValueError(f"{page_size} is an invalid page size.")
+
+        if page_orientation in VALID_PAGE_ORIENTATIONS:
+            if len(VALID_PAGE_ORIENTATIONS) == 2:
+                if page_orientation == "Landscape":
+                    page_size = f"{page_size}-{page_orientation.lower()}"
+                else:
+                    page_size = f"{page_size}"
+        else:
+            raise ValueError(f"{page_orientation} is an invalid page orientation. Choose from: {VALID_PAGE_ORIENTATIONS}")
+
+        return page_size
+
+    def get_rst2pdf_pageSetup_measure(self, measure=""):
+        mm = re.search(r"^\s*(\d+)(\.\d+)*\s*(in|IN|cm|CM)\s*$", measure)
+        if isinstance(mm, re.Match):
+            unit_ordinal = mm.group(1) or "0"
+            unit_decimal = mm.group(2) or ".0"
+            unit = mm.group(3) or "in"
+            this_measure = f"{unit_ordinal}{unit_decimal}{unit.lower()}"
+            return this_measure
+        else:
+            logger.error(f"{measure} is an invalid measure.  ``measure`` should look like 2cm or 2in")
+            raise ValueError()
+
+    # This is on the Stylesheet() class
+    @logger.catch(reraise=True)
+    def get_rst2pdf_data_dict(self):
+        """
+        Create the most essential rst2pdf stylesheet from scratch.
+        """
+        return {
+            # There are a few reserved keywords, 'pageSetup' is one...
+            "pageSetup": {
+                "size": self.get_rst2pdf_pageSetup_size(page_size=self.page_size, page_orientation=self.page_orientation),
+                "margin-top": self.get_rst2pdf_pageSetup_measure("0.70cm"),
+                "margin-bottom": self.get_rst2pdf_pageSetup_measure("0.70cm"),
+                "margin-left": self.get_rst2pdf_pageSetup_measure("0.70cm"),
+                "margin-right": self.get_rst2pdf_pageSetup_measure("0.70cm"),
+                "margin-gutter": self.get_rst2pdf_pageSetup_measure("0.0cm"),
+                "spacing-header": self.get_rst2pdf_pageSetup_measure("0.0cm"),
+                "spacing-footer": self.get_rst2pdf_pageSetup_measure("0.0cm"),
+            },
+            # There are a few reserved keywords, 'styles' is one...
+            "styles": {
+                "base": {
+                        "alignment": "TA_LEFT",
+                        "allowOrphans": False,
+                        "backColor": None,
+                        "borderColor": None,
+                        "borderPadding": 0,
+                        "borderRadius": None,
+                        "borderWidth": 0,
+                        "commands": [],
+                        "firstLineIndent": 0,
+                        "fontName": self.get_rst2pdf_styles_fontName(font_name=self.font_name),
+                        "fontSize": self.font_size,
+                        "hyphenation": False,
+                        "leading": self.font_size,
+                        "leftIndent": 0,
+                        "parent": None,
+                        "rightIndent": 0,
+                        "spaceAfter": 0,
+                        "spaceBefore": 0,
+                        "strike": False,
+                        "textColor": "black",
+                        "underline": False,
+                        "wordwrap": None,
+                },
+                "section": {
+                    "parent": "base",
+                },
+            },
+        }
+
 
 class ThisApplication(object):
 
@@ -261,11 +316,6 @@ class ThisApplication(object):
         self.write_custom_rst_imports()
 
     @logger.catch(reraise=True)
-    def create_stylesheet(self, directory=None, filename=None, font_name=None, font_size=None, font_attrs=None):
-        ssobj = Stylesheet(font_name=font_name, font_size=font_size, font_attrs=font_attrs,)
-        ssobj.save_stylesheet_yaml(directory=directory, filename=filename)
-
-    @logger.catch(reraise=True)
     def convert_rst_to_pdf(self, stylesheet_directory=None, stylesheet_filename=None):
         if self.start_filename_suffix == "rst":
             check_file_exists(filepath=f"{self.start_filepath}")
@@ -281,7 +331,10 @@ class ThisApplication(object):
             )
             check_file_exists(self.finish_filepath)
 
-            if output_namedtuple.returncode > 0:
+            if output_namedtuple.stderr != b"":
+                logger.warning(output_namedtuple)
+                return True
+            elif output_namedtuple.returncode > 0:
                 logger.error(output_namedtuple)
                 raise OSError(output_namedtuple.stderr.strip())
             else:
@@ -424,10 +477,30 @@ class ThisApplication(object):
                     else:
                         logger.success(f"Local URL --> http://{v46addr}:{args.webserver_port}/")
 
+                cmd = f"{os.getcwd()}/filesystem_webserver --webserverPort {webserver_port} --webserverDirectory {temp_dir}"
                 return_code = call(
-                    shlex.split(f"{os.getcwd()}/filesystem_webserver --webserverPort {webserver_port} --webserverDirectory {temp_dir}"),
+                    shlex.split(cmd),
                     shell=False,
                 )
+
+                runtime_start = time.time()
+                output_namedtuple = run(
+                    shlex.split(cmd),
+                    shell=False,
+                    capture_output=True,
+                )
+                runtime = float(time.time() - runtime_start)
+                if output_namedtuple.returncode > 0:
+                    raise OSError(f"-->{cmd}<-- exited with returncode {returncode}: {output_namedtuple.stderr}")
+                elif runtime <= 1.0:
+                    error = f"{cmd} failed to block and properly wait for input."
+                    logger.critical(error)
+                    raise OSError(f"{cmd} failed to block and properly wait for input; investigate why it didn't block for input.")
+                else:
+                    logger.info(f"{cmd} exited with returncode: 0")
+            except OSError:
+                logger.error("Webserver failed to block and wait for input properly.")
+                sys.exit(1)
             except KeyboardInterrupt:
                 logger.info("    Webserver interrupted by KeyboardInterrupt.")
             except Exception as eee:
@@ -692,13 +765,19 @@ if __name__=="__main__":
 
     args = parse_cli_args(sys.argv[1:])
     app = ThisApplication(start_filepath=args.start_filepath)
-    app.create_stylesheet(
-        directory=args.stylesheet_directory,
-        filename=args.stylesheet_filename,
+
+    stylesheet = Stylesheet(
+        page_size="A5",
+        page_orientation="Portriat",
         font_name=args.font_name,
         font_size=args.font_size,
         font_attrs=args.font_attrs,
     )
+    stylesheet.save_stylesheet_yaml(
+        directory=args.stylesheet_directory,
+        filename=args.stylesheet_filename,
+    )
+
     app.convert_rst_to_pdf(stylesheet_directory=args.stylesheet_directory, stylesheet_filename=args.stylesheet_filename)
     ipv46_addrs = list_local_ipaddrs(terminal_encoding=args.terminal_encoding)
     if args.webserver_port > 0:
