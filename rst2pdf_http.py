@@ -28,14 +28,21 @@ VALID_PAGE_SIZES = set({"A0", "A1", "A2", "A3", "A4", "A5", "A6", "B0", "B1", "B
 VALID_PAGE_ORIENTATIONS = set({"Landscape", "Portriat",})
 VALID_FONT_ATTRS = set({"Bold", "Italic", "Oblique",})
 VALID_FONT_NAMES = set({"Mono", "Sans", "Serif",}) # Sans is similar to Arial
-VALID_FONT_SIZES = set({8, 10, 12, 14,})
+VALID_FONT_SIZES = set({7, 8, 9, 10, 11, 12, 13, 14, 15, 16,})
+DEFAULT_PAGE_SIZE = "A5"
+DEFAULT_PAGE_ORIENTATION = "Portriat"
+DEFAULT_PAGE_MARGIN = "0.75cm"
+DEFAULT_PAGE_GUTTER = "0.0cm"
+DEFAULT_PAGE_HEADER_FOOTER_SPACING = "0.0cm"
 DEFAULT_STYLESHEET_DIRECTORY = os.path.expanduser("~/.rst2pdf/")
 DEFAULT_STYLESHEET_FILENAME = "rst2pdf_stylesheet.yml"
 DEFAULT_STYLESHEET_FONTATTR = []
 DEFAULT_STYLESHEET_FONTNAME = "Serif"
-DEFAULT_STYLESHEET_FONTSIZE = 12
+DEFAULT_STYLESHEET_FONTSIZE = 9
 DEFAULT_TERMINAL_ENCODING = Console().encoding
 DEFAULT_START_FILENAME_SUFFIX = "rst"
+CUSTOM_STYLESHEET_DIRECTORY = DEFAULT_STYLESHEET_DIRECTORY
+CUSTOM_IMPORTS_FILEPATH = f"{CUSTOM_STYLESHEET_DIRECTORY}/custom_imports"
 
 class DummyLoggerProperty(object):
     """
@@ -124,10 +131,17 @@ class Stylesheet(object):
 
     # This is on the Stylesheet() class
     @logger.catch(reraise=True)
-    def __init__(self, font_attrs=None, **kwargs):
+    def __init__(self, cli_args=None, **kwargs):
         """
         Write a custom rst2pdf Stylesheet with ``font_name``, ``font_size` and ``font_attrs``.
         """
+        if isinstance(cli_args, argparse.Namespace):
+            font_attrs = cli_args.font_attrs
+            self.cli_args = cli_args
+            self.cli_args.font_attrs = font_attrs
+        else:
+            raise ValueError()
+
         if font_attrs is None:
             font_attrs = []
         elif isinstance(font_attrs, list):
@@ -140,21 +154,15 @@ class Stylesheet(object):
         else:
             raise ValueError(f"Stylesheet(font_attrs='''{font_attrs}''' {type(font_attrs)}) must be a `list` or None.")
 
-        self.font_name = kwargs.get("font_name", None)
-        self.font_size = kwargs.get("font_size", None)
-        self.font_attrs = font_attrs
-
-        self.page_size = kwargs.get("page_size", None)
-        self.page_orientation = kwargs.get("page_orientation", None)
 
     # This is on the Stylesheet() class
     @logger.catch(reraise=True)
     def __repr__(self):
-        return f"""<Stylesheet font_name: {self.font_name}, font_size: {self.font_size}, font_attrs: {self.font_attrs}>"""
+        return f"""<Stylesheet font_name: {self.cli_args.font_name}, font_size: {self.cli_args.font_size}, font_attrs: {self.cli_args.font_attrs}>"""
 
     # This is on the Stylesheet() class
     @logger.catch(reraise=True)
-    def save_stylesheet_yaml(self, directory=DEFAULT_STYLESHEET_DIRECTORY, filename=DEFAULT_STYLESHEET_FILENAME):
+    def save_stylesheet_yaml(self, directory=CUSTOM_STYLESHEET_DIRECTORY, filename=DEFAULT_STYLESHEET_FILENAME):
         """Use PyYaml to save `get_rst2pdf_data_dict()` as an rst2pdf stylesheet"""
         try:
             os.makedirs(f"{directory}")
@@ -177,7 +185,7 @@ class Stylesheet(object):
         else:
             raise ValueError(f"{font_name} is an invalid font name.")
 
-        for ii in sorted(self.font_attrs):
+        for ii in sorted(self.cli_args.font_attrs):
             font_name += ii
         if font_name[0:3]=="font":
             return font_name
@@ -201,7 +209,7 @@ class Stylesheet(object):
                 else:
                     page_size = f"{page_size}"
         else:
-            raise ValueError(f"{page_orientation} is an invalid page orientation. Choose from: {VALID_PAGE_ORIENTATIONS}")
+            raise ValueError(f"{page_orientation} is an invalid page orientation. Choose from: {sorted(VALID_PAGE_ORIENTATIONS)}")
 
         return page_size
 
@@ -226,14 +234,32 @@ class Stylesheet(object):
         return {
             # There are a few reserved keywords, 'pageSetup' is one...
             "pageSetup": {
-                "size": self.get_rst2pdf_pageSetup_size(page_size=self.page_size, page_orientation=self.page_orientation),
-                "margin-top": self.get_rst2pdf_pageSetup_measure("0.70cm"),
-                "margin-bottom": self.get_rst2pdf_pageSetup_measure("0.70cm"),
-                "margin-left": self.get_rst2pdf_pageSetup_measure("0.70cm"),
-                "margin-right": self.get_rst2pdf_pageSetup_measure("0.70cm"),
-                "margin-gutter": self.get_rst2pdf_pageSetup_measure("0.0cm"),
-                "spacing-header": self.get_rst2pdf_pageSetup_measure("0.0cm"),
-                "spacing-footer": self.get_rst2pdf_pageSetup_measure("0.0cm"),
+                # Set both size and orientation. Dont change the 'size' keyword
+                "size": self.get_rst2pdf_pageSetup_size(
+                    page_size=self.cli_args.page_size,
+                    page_orientation=self.cli_args.page_orientation
+                ),
+                "margin-top": self.get_rst2pdf_pageSetup_measure(
+                    measure=self.cli_args.page_margins
+                ),
+                "margin-bottom": self.get_rst2pdf_pageSetup_measure(
+                    measure=self.cli_args.page_margins
+                ),
+                "margin-left": self.get_rst2pdf_pageSetup_measure(
+                    measure=self.cli_args.page_margins
+                ),
+                "margin-right": self.get_rst2pdf_pageSetup_measure(
+                    measure=self.cli_args.page_margins
+                ),
+                "margin-gutter": self.get_rst2pdf_pageSetup_measure(
+                    measure=self.cli_args.page_gutter
+                ),
+                "spacing-header": self.get_rst2pdf_pageSetup_measure(
+                    measure=self.cli_args.page_header_footer_spacing
+                ),
+                "spacing-footer": self.get_rst2pdf_pageSetup_measure(
+                    measure=self.cli_args.page_header_footer_spacing
+                ),
             },
             # There are a few reserved keywords, 'styles' is one...
             "styles": {
@@ -247,10 +273,10 @@ class Stylesheet(object):
                         "borderWidth": 0,
                         "commands": [],
                         "firstLineIndent": 0,
-                        "fontName": self.get_rst2pdf_styles_fontName(font_name=self.font_name),
-                        "fontSize": self.font_size,
+                        "fontName": self.get_rst2pdf_styles_fontName(font_name=self.cli_args.font_name),
+                        "fontSize": self.cli_args.font_size,
                         "hyphenation": False,
-                        "leading": self.font_size,
+                        "leading": self.cli_args.font_size,
                         "leftIndent": 0,
                         "parent": None,
                         "rightIndent": 0,
@@ -302,15 +328,13 @@ class ThisApplication(object):
             self.finish_filepath = start_filepath
             self.finish_filename_suffix = start_filename_suffix
 
-        self.rst2pdf_home = DEFAULT_STYLESHEET_DIRECTORY
-
         # Technically we will call
         if len(sys.argv) > 0:
             self.cli_args = parse_cli_args(sys.argv[1:])
         else:
             self.cli_args = None
 
-        self.custom_imports_directory = os.path.normpath(f"{self.rst2pdf_home}/custom_imports")
+        self.custom_imports_directory = os.path.normpath(f"{CUSTOM_STYLESHEET_DIRECTORY}/custom_imports")
         # Write text files to rst_imports/ to be imported
         self.write_custom_imports_directory()
         self.write_custom_rst_imports()
@@ -386,7 +410,7 @@ class ThisApplication(object):
 
     def write_custom_imports_directory(self):
         try:
-            os.makedirs(f"{self.rst2pdf_home}/custom_imports")
+            os.makedirs(f"{CUSTOM_STYLESHEET_DIRECTORY}/custom_imports")
         except FileExistsError:
             # Directory already exists...
             pass
@@ -556,12 +580,42 @@ def parse_cli_args(sys_argv1):
         default=0,
         choices=None,
         action="store",
-        help="Start a webserver on this port."
+        help="Start a webserver on this port. The default is no webserver."
     )
     parser_optional.add_argument("-i", "--write_rst_imports",
         default=False,
         action="store_true",
-        help=f"Write the canned rst imports."
+        help=f"Write the canned rst imports file to {CUSTOM_STYLESHEET_DIRECTORY}/custom_imports."
+    )
+    parser_optional.add_argument("--page_size",
+        type=str,
+        default=DEFAULT_PAGE_SIZE,
+        action="store",
+        help=f"Set the PDF page size.  Choose from {sorted(VALID_PAGE_SIZES)}.",
+    )
+    parser_optional.add_argument("--page_orientation",
+        type=str,
+        default=DEFAULT_PAGE_ORIENTATION,
+        action="store",
+        help=f"Set the page orientation.  The default is {DEFAULT_PAGE_ORIENTATION}.  Choose from {sorted(VALID_PAGE_ORIENTATIONS)}.",
+    )
+    parser_optional.add_argument("--page_margins",
+        type=str,
+        default=DEFAULT_PAGE_MARGIN,
+        action="store",
+        help=f"Set all the page margins in cm or in. The default is {DEFAULT_PAGE_MARGIN}",
+    )
+    parser_optional.add_argument("--page_gutter",
+        type=str,
+        default=DEFAULT_PAGE_GUTTER,
+        action="store",
+        help=f"Set the page gutter in cm or in.  The default is {DEFAULT_PAGE_GUTTER}",
+    )
+    parser_optional.add_argument("--page_header_footer_spacing",
+        type=str,
+        default=DEFAULT_PAGE_HEADER_FOOTER_SPACING,
+        action="store",
+        help=f"Set the header and footer spacing in cm or in.  The default is {DEFAULT_PAGE_HEADER_FOOTER_SPACING}",
     )
     parser_optional.add_argument("-n", "--font_name",
         type=str,
@@ -767,11 +821,10 @@ if __name__=="__main__":
     app = ThisApplication(start_filepath=args.start_filepath)
 
     stylesheet = Stylesheet(
-        page_size="A5",
-        page_orientation="Portriat",
-        font_name=args.font_name,
-        font_size=args.font_size,
+        cli_args=args,
         font_attrs=args.font_attrs,
+        page_size=args.page_size,
+        page_orientation="Portriat",
     )
     stylesheet.save_stylesheet_yaml(
         directory=args.stylesheet_directory,
