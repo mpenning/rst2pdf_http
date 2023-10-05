@@ -67,7 +67,9 @@ class DummyLoggerProperty(object):
         # Keep this `dummy_catch_kwargs` reference to ensure
         # what python vulture can pass at 100% unused-code
         # confidence...
-        reraise = get(dummy_catch_kwargs, 'reraise', False)
+
+        # Use noqa to disable specific ruff error linting for a line...
+        reraise = get(dummy_catch_kwargs, 'reraise', False) # noqa: F821 F841
 
         def outside_wrapper(wrapped_func):
             @wraps(wrapped_func)
@@ -129,7 +131,7 @@ def check_file_exists(filepath=None):
         raise OSError(f"{abspath} must exist.")
 
 def check_supported_platform():
-    if not (sys.platform in VALID_PLATFORMS):
+    if sys.platform not in VALID_PLATFORMS:
         raise OSError(f"{sys.platform} is not supported")
 
 def get_unix_listening_port_sockets(address_family=None, tcp_port=None):
@@ -173,8 +175,6 @@ udp        0      0 0.0.0.0:123             0.0.0.0:*
         columns = str(line).split()
         if len(columns)==5 or len(columns)==6:
             proto = columns[0]
-            recvq = columns[1]
-            sendq = columns[2]
             state = columns[-1]
             local_address_port = columns[3]
             if state.lower()=="listen":
@@ -370,7 +370,6 @@ class ThisApplication(object):
         start_filename = start_pathobj.parts[-1]
         start_filename_suffix = start_pathobj.suffix.split(".")[-1]
         start_filename_prefix = start_pathobj.stem
-        current_directory = os.getcwd()
 
         if "." in start_filename_suffix:
             raise ValueError(f"This is an invalid suffix: '{start_filename_suffix}'")
@@ -533,8 +532,6 @@ class ThisApplication(object):
             error = "Webserver port must not be 0"
             raise ValueError(error)
 
-        start_filename = self.start_filename
-
         # Check the local ipv4 / ipv6 addresses for problems...
         self.check_ipv46_addrs(local_ipv46_addrs)
 
@@ -565,7 +562,8 @@ class ThisApplication(object):
                         logger.success(f"Local URL --> http://{v46addr}:{args.webserver_port}/")
 
                 cmd = f"{os.getcwd()}/filesystem_webserver --webserverPort {webserver_port} --webserverDirectory {temp_dir}"
-                return_code = call(
+                # This will block stdin...
+                call(
                     shlex.split(cmd),
                     shell=False,
                 )
@@ -578,7 +576,7 @@ class ThisApplication(object):
                 )
                 runtime = float(time.time() - runtime_start)
                 if output_namedtuple.returncode > 0:
-                    raise OSError(f"-->{cmd}<-- exited with returncode {returncode}: {output_namedtuple.stderr}")
+                    raise OSError(f"-->{cmd}<-- exited with returncode {output_namedtuple.returncode}: {output_namedtuple.stderr}")
                 elif runtime <= 1.0:
                     error = f"{cmd} failed to block and properly wait for input."
                     logger.critical(error)
@@ -720,12 +718,12 @@ def parse_cli_args(sys_argv1):
         default="UTF-8",
         choices=None,
         action="store",
-        help="."
+        help=f"Use this manual terminal encoding.  The auto-detected default is {DEFAULT_TERMINAL_ENCODING}"
     )
     parser_optional.add_argument("-v", "--version",
         default=False,
         action="store_true",
-        help=f"Output the script version number to stdout."
+        help="Output the script version number to stdout."
     )
 
     args = parser.parse_args(sys_argv1)
@@ -736,7 +734,7 @@ def parse_cli_args(sys_argv1):
         this_year = today.year
         start_year = 2023
         if this_year != start_year:
-            all_years = f"{start_year}-{year}"
+            all_years = f"{start_year}-{this_year}"
         else:
             all_years = f"{start_year}"
 
