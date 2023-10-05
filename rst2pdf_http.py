@@ -486,6 +486,9 @@ class ThisApplication(object):
             self.write_localtime_today_as_words()
 
     def write_localtime_today_as_words(self):
+        """
+        Get the system local date, and save it as a file.
+        """
         today = datetime.date.today()
         day = today.day
         month = today.month
@@ -585,7 +588,7 @@ class ThisApplication(object):
             except KeyboardInterrupt:
                 logger.info("    Webserver interrupted by KeyboardInterrupt.")
             except Exception as eee:
-                logger.error(f"   {eee}: Did you type `make build` before running the script?")
+                logger.error(f"   {eee}: Did you type `make all` before running the script?")
 
 @logger.catch(reraise=True)
 def get_version_number(version_filename="resources/version.json"):
