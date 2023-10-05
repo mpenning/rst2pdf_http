@@ -109,5 +109,10 @@ all:
 	#############################################################################
 	make vulture
 	make ruff
+	#############################################################################
+	# Version number seat-belt... git_revlist_count_HEAD.txt should always match
+	#   git rev-list --count HEAD
+	#############################################################################
+	$(shell diff -u resources/git_revlist_count_HEAD.txt <(git rev-list --count HEAD))
 .PHONY: all
 
