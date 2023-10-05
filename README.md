@@ -1,7 +1,7 @@
-Helper to run rst2pdf, including serving the final pdf file over python's http.server
+This is a helper to run [rst2pdf](https://github.com/rst2pdf/rst2pdf), including serving the final pdf file over python's http.server
 
 # Problem Statement
-If you are like me, you have a linux vm running under vmware that you use to do things that you wouldn't do under windows; I edit most of my text files in linux, including many rst files that I convert to pdf (using rst2pdf).
+If you are like me, you have a linux vm running under VMWare that you use to do things that you wouldn't do under windows; I edit most of my text files in linux, including many rst files that I convert to pdf (using [rst2pdf](https://github.com/rst2pdf/rst2pdf)).
 
 This means I have a topology like this:
 
