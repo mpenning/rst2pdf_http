@@ -113,6 +113,7 @@ all:
 	# Version number seat-belt... git_revlist_count_HEAD.txt should always match
 	#   git rev-list --count HEAD
 	#############################################################################
+	@echo "$(CLR_CYAN)    >> Run version numbering seatbelt.$(CLR_END)"
 	$(shell  git rev-list --count HEAD > resources/this_rev.tmp)
 	diff -u resources/this_rev.tmp resources/git_revlist_count_HEAD.txt
 	rm resources/this_rev.tmp
