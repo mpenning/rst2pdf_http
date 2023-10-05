@@ -31,6 +31,11 @@ vulture:
 	vulture --min-confidence 80 rst2pdf_http.py
 .PHONY: vulture
 
+ruff:
+	@echo "$(CLR_GREEN)>> Linting with ruff(CLR_END)"
+	ENABLE_LINTERS="PYTHON_RUFF" ~/.local/bin/ruff check ./rst2pdf_http.py
+.PHONY: ruff
+
 checkmake:
 	@echo "$(CLR_GREEN)>> Checking this Makefile(CLR_END)"
 	checkmake --config=resources/checkmake.ini ./Makefile
@@ -94,5 +99,6 @@ all:
 	# Install all python dependencies
 	#############################################################################
 	make pip
+	make ruff
 .PHONY: all
 
