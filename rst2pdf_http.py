@@ -29,6 +29,8 @@ VALID_PAGE_ORIENTATIONS = set({"Landscape", "Portriat",})
 VALID_FONT_ATTRS = set({"Bold", "Italic", "Oblique",})
 VALID_FONT_NAMES = set({"Mono", "Sans", "Serif",}) # Sans is similar to Arial
 VALID_FONT_SIZES = set({7, 8, 9, 10, 11, 12, 13, 14, 15, 16,})
+VALID_IPADDRESS_FAMILIES = set({"inet", "inet6",})
+VALID_PLATFORMS = set({"linux",})
 DEFAULT_PAGE_SIZE = "A5"
 DEFAULT_PAGE_ORIENTATION = "Portriat"
 DEFAULT_PAGE_MARGIN = "0.75cm"
@@ -125,6 +127,61 @@ def check_file_exists(filepath=None):
         return True
     else:
         raise OSError(f"{abspath} must exist.")
+
+def check_supported_platform():
+    if not (sys.platform in VALID_PLATFORMS):
+        raise OSError(f"{sys.platform} is not supported")
+
+def check_unix_listening_port_open(address_family=None, tcp_port=None):
+    """
+    Return True if the TCP port is open.  Return False if the TCP port is not open.
+
+    $ netstat -an -A inet
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN
+tcp        0      0 192.168.199.129:22      192.168.199.1:49770     ESTABLISHED
+tcp        0      0 192.168.199.129:22      192.168.199.1:50427     ESTABLISHED
+udp        0      0 0.0.0.0:68              0.0.0.0:*
+udp        0      0 192.168.199.129:123     0.0.0.0:*
+udp        0      0 127.0.0.1:123           0.0.0.0:*
+udp        0      0 0.0.0.0:123             0.0.0.0:*
+    $
+    """
+    logger.info(f"Checking that {address_family} TCP port {tcp_port} is open.")
+    if address_family in VALID_IPADDRESS_FAMILIES:
+        pass
+    else:
+        error = f"{address_family} is an invalid address family. Choose from: {sorted(VALID_IPADDRESS_FAMILIES)}."
+        logger.error(error)
+        raise ValueError(error)
+
+    port_open = True
+    netstat_cmd = f"netstat -an -A {address_family}"
+    output_namedtuple = run(
+        shlex.split(netstat_cmd),
+        shell=False,
+        capture_output=True,
+    )
+
+    return_code = output_namedtuple.returncode
+    if return_code > 0:
+        raise OSError(f"'''{netstat_cmd}''' failed. Is that the right command?")
+
+    lines = str(output_namedtuple.stdout).replace("\\n", "\n").splitlines()
+    for line in lines:
+        columns = str(line).split()
+        if len(columns)==5 or len(columns)==6:
+            proto = columns[0]
+            recvq = columns[1]
+            sendq = columns[2]
+            local_address_port = columns[3]
+            if proto=="tcp" or proto=="tcp6":
+                if local_address_port.split(":")[-1]==str(tcp_port):
+                    port_open = False
+                    break
+
+    return port_open
 
 
 class Stylesheet(object):
@@ -817,9 +874,21 @@ def list_local_ipaddrs(**kwargs):
 
 if __name__=="__main__":
 
+    check_supported_platform()
     args = parse_cli_args(sys.argv[1:])
-    app = ThisApplication(start_filepath=args.start_filepath)
 
+    if args.webserver_port > 0:
+        for address_family in sorted(VALID_IPADDRESS_FAMILIES):
+            tcp_port_open = check_unix_listening_port_open(
+                address_family=address_family,
+                tcp_port=args.webserver_port
+            )
+            if tcp_port_open is False:
+                error = f"Cannot start webserver on TCP port {args.webserver_port}."
+                logger.error(error)
+                raise OSError(error)
+
+    app = ThisApplication(start_filepath=args.start_filepath)
     stylesheet = Stylesheet(
         cli_args=args,
         font_attrs=args.font_attrs,
