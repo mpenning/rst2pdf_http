@@ -31,6 +31,11 @@ vulture:
 	vulture --min-confidence 80 rst2pdf_http.py
 .PHONY: vulture
 
+black:
+	@echo "$(CLR_GREEN)>> Formatting with black(CLR_END)"
+	black --line-length 300 rst2pdf_http.py
+.PHONY: black
+
 ruff:
 	@echo "$(CLR_GREEN)>> Linting with ruff(CLR_END)"
 	ENABLE_LINTERS="PYTHON_RUFF" ~/.local/bin/ruff check ./rst2pdf_http.py
@@ -91,6 +96,10 @@ all:
 	#############################################################################
 	$(shell chmod -R 777 $$RST2PDFHTTPTEMPDIR)
 	rm -rf $$RST2PDFHTTPTEMPDIR
+	#############################################################################
+	# Format with black
+	#############################################################################
+	make black
 	#############################################################################
 	# Look for dead python code...
 	#############################################################################
