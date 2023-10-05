@@ -22,13 +22,13 @@ In this topology, I edit files on 10.0.0.6 but consume them in Windows; automagi
 
 # Typical Use-case
 
-Assume I am building a pdf for a doocument saved as `CoverLetter_20230927.rst` and want to serve it on port 8080....
+Assume I am building a pdf for a doocument saved as `CoverLetter_20230927.rst` with an 8-point font, and want to serve it on port 8080....
 
 ```
 $ make build
 ...
 
-$ python ./rst2pdf_builder.py -f ~/CoverLetter_20230927.rst -w 8080 -i
+$ python rst2pdf_http.py -f ../CoverLetter_20230927.rst -s 8 -i -w 8080
 
 rst2pdf --stylesheet-path=/home/my_user/.rst2pdf/ --stylesheets=rst2pdf_stylesheet.yml CoverLetter_20230927.rst -o CoverLetter_20230927.pdf
 /home/my_user/rst2pdf_http.py:284: UserWarning: Source and destination are the same file; no file copy was required.
