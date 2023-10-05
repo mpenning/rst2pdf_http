@@ -26,7 +26,8 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Local packaging
+# Ignore Local packaging
+.ruff_cache
 go.sum
 filesystem_webserver
 
