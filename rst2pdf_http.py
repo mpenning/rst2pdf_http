@@ -1,4 +1,3 @@
-
 """
 
 """
@@ -23,14 +22,75 @@ from rich.console import Console
 from loguru import logger
 import yaml
 
-VALID_PAGE_UNITS = set({"cm", "in",})
-VALID_PAGE_SIZES = set({"A0", "A1", "A2", "A3", "A4", "A5", "A6", "B0", "B1", "B2", "B3", "B4", "B5", "B6",})
-VALID_PAGE_ORIENTATIONS = set({"Landscape", "Portriat",})
-VALID_FONT_ATTRS = set({"Bold", "Italic", "Oblique",})
-VALID_FONT_NAMES = set({"Mono", "Sans", "Serif",}) # Sans is similar to Arial
-VALID_FONT_SIZES = set({7, 8, 9, 10, 11, 12, 13, 14, 15, 16,})
-VALID_IPADDRESS_FAMILIES = set({"inet", "inet6",})
-VALID_PLATFORMS = set({"linux",})
+VALID_PAGE_UNITS = set(
+    {
+        "cm",
+        "in",
+    }
+)
+VALID_PAGE_SIZES = set(
+    {
+        "A0",
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5",
+        "A6",
+        "B0",
+        "B1",
+        "B2",
+        "B3",
+        "B4",
+        "B5",
+        "B6",
+    }
+)
+VALID_PAGE_ORIENTATIONS = set(
+    {
+        "Landscape",
+        "Portriat",
+    }
+)
+VALID_FONT_ATTRS = set(
+    {
+        "Bold",
+        "Italic",
+        "Oblique",
+    }
+)
+VALID_FONT_NAMES = set(
+    {
+        "Mono",
+        "Sans",
+        "Serif",
+    }
+)  # Sans is similar to Arial
+VALID_FONT_SIZES = set(
+    {
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+    }
+)
+VALID_IPADDRESS_FAMILIES = set(
+    {
+        "inet",
+        "inet6",
+    }
+)
+VALID_PLATFORMS = set(
+    {
+        "linux",
+    }
+)
 DEFAULT_PAGE_SIZE = "A5"
 DEFAULT_PAGE_ORIENTATION = "Portriat"
 DEFAULT_PAGE_MARGIN = "0.75cm"
@@ -46,6 +106,7 @@ DEFAULT_START_FILENAME_SUFFIX = "rst"
 CUSTOM_STYLESHEET_DIRECTORY = DEFAULT_STYLESHEET_DIRECTORY
 CUSTOM_IMPORTS_FILEPATH = f"{CUSTOM_STYLESHEET_DIRECTORY}/custom_imports"
 
+
 class DummyLoggerProperty(object):
     """
     DummyLoggerProperty.catch() implementation.
@@ -54,6 +115,7 @@ class DummyLoggerProperty(object):
 
     If this class was used, it would have been renamed as ``logger`` and defined in a try / except block while importing ``loguru``.
     """
+
     def catch(**dummy_catch_kwargs):
         """
         Catch of the logger.catch() class-method stub.
@@ -69,7 +131,7 @@ class DummyLoggerProperty(object):
         # confidence...
 
         # Use noqa to disable specific ruff error linting for a line...
-        reraise = get(dummy_catch_kwargs, 'reraise', False) # noqa: F821 F841
+        reraise = get(dummy_catch_kwargs, "reraise", False)  # noqa: F821 F841
 
         def outside_wrapper(wrapped_func):
             @wraps(wrapped_func)
@@ -88,7 +150,9 @@ class DummyLoggerProperty(object):
                 return inner_call_new
             else:
                 return inner_call
+
         return outside_wrapper
+
 
 @logger.catch(reraise=True)
 def check_file_exists(filepath=None):
@@ -130,25 +194,27 @@ def check_file_exists(filepath=None):
     else:
         raise OSError(f"{abspath} must exist.")
 
+
 def check_supported_platform():
     if sys.platform not in VALID_PLATFORMS:
         raise OSError(f"{sys.platform} is not supported")
 
+
 def get_unix_listening_port_sockets(address_family=None, tcp_port=None):
     """
-    Return True if the TCP port has a socket in the table.  Return False if the TCP port is not open.
+        Return True if the TCP port has a socket in the table.  Return False if the TCP port is not open.
 
-    $ netstat -an -A inet
-Active Internet connections (servers and established)
-Proto Recv-Q Send-Q Local Address           Foreign Address         State
-tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN
-tcp        0      0 192.168.199.129:22      192.168.199.1:49770     ESTABLISHED
-tcp        0      0 192.168.199.129:22      192.168.199.1:50427     ESTABLISHED
-udp        0      0 0.0.0.0:68              0.0.0.0:*
-udp        0      0 192.168.199.129:123     0.0.0.0:*
-udp        0      0 127.0.0.1:123           0.0.0.0:*
-udp        0      0 0.0.0.0:123             0.0.0.0:*
-    $
+        $ netstat -an -A inet
+    Active Internet connections (servers and established)
+    Proto Recv-Q Send-Q Local Address           Foreign Address         State
+    tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN
+    tcp        0      0 192.168.199.129:22      192.168.199.1:49770     ESTABLISHED
+    tcp        0      0 192.168.199.129:22      192.168.199.1:50427     ESTABLISHED
+    udp        0      0 0.0.0.0:68              0.0.0.0:*
+    udp        0      0 192.168.199.129:123     0.0.0.0:*
+    udp        0      0 127.0.0.1:123           0.0.0.0:*
+    udp        0      0 0.0.0.0:123             0.0.0.0:*
+        $
     """
     logger.info(f"Checking that {address_family} TCP port {tcp_port} is open.")
     if address_family in VALID_IPADDRESS_FAMILIES:
@@ -173,13 +239,13 @@ udp        0      0 0.0.0.0:123             0.0.0.0:*
     lines = str(output_namedtuple.stdout).replace("\\n", "\n").splitlines()
     for line in lines:
         columns = str(line).split()
-        if len(columns)==5 or len(columns)==6:
+        if len(columns) == 5 or len(columns) == 6:
             proto = columns[0]
             state = columns[-1]
             local_address_port = columns[3]
-            if state.lower()=="listen":
-                if proto=="tcp" or proto=="tcp6":
-                    if local_address_port.split(":")[-1]==str(tcp_port):
+            if state.lower() == "listen":
+                if proto == "tcp" or proto == "tcp6":
+                    if local_address_port.split(":")[-1] == str(tcp_port):
                         logger.debug("    " + line)
                         port_open = False
                         break
@@ -188,7 +254,6 @@ udp        0      0 0.0.0.0:123             0.0.0.0:*
 
 
 class Stylesheet(object):
-
     # This is on the Stylesheet() class
     @logger.catch(reraise=True)
     def __init__(self, cli_args=None, **kwargs):
@@ -214,7 +279,6 @@ class Stylesheet(object):
         else:
             raise ValueError(f"Stylesheet(font_attrs='''{font_attrs}''' {type(font_attrs)}) must be a `list` or None.")
 
-
     # This is on the Stylesheet() class
     @logger.catch(reraise=True)
     def __repr__(self):
@@ -229,12 +293,8 @@ class Stylesheet(object):
         except Exception:
             pass
         filepath = os.path.normpath(f"{directory}/{filename}")
-        with open(filepath, 'w') as fh:
-            yaml.dump(
-                data=self.get_rst2pdf_data_dict(),
-                stream=fh,
-                default_flow_style=False
-            )
+        with open(filepath, "w") as fh:
+            yaml.dump(data=self.get_rst2pdf_data_dict(), stream=fh, default_flow_style=False)
 
     # This is on the Stylesheet() class
     @logger.catch(reraise=True)
@@ -247,7 +307,7 @@ class Stylesheet(object):
 
         for ii in sorted(self.cli_args.font_attrs):
             font_name += ii
-        if font_name[0:3]=="font":
+        if font_name[0:3] == "font":
             return font_name
         else:
             font_name = "font" + font_name
@@ -295,57 +355,40 @@ class Stylesheet(object):
             # There are a few reserved keywords, 'pageSetup' is one...
             "pageSetup": {
                 # Set both size and orientation. Dont change the 'size' keyword
-                "size": self.get_rst2pdf_pageSetup_size(
-                    page_size=self.cli_args.page_size,
-                    page_orientation=self.cli_args.page_orientation
-                ),
-                "margin-top": self.get_rst2pdf_pageSetup_measure(
-                    measure=self.cli_args.page_margins
-                ),
-                "margin-bottom": self.get_rst2pdf_pageSetup_measure(
-                    measure=self.cli_args.page_margins
-                ),
-                "margin-left": self.get_rst2pdf_pageSetup_measure(
-                    measure=self.cli_args.page_margins
-                ),
-                "margin-right": self.get_rst2pdf_pageSetup_measure(
-                    measure=self.cli_args.page_margins
-                ),
-                "margin-gutter": self.get_rst2pdf_pageSetup_measure(
-                    measure=self.cli_args.page_gutter
-                ),
-                "spacing-header": self.get_rst2pdf_pageSetup_measure(
-                    measure=self.cli_args.page_header_footer_spacing
-                ),
-                "spacing-footer": self.get_rst2pdf_pageSetup_measure(
-                    measure=self.cli_args.page_header_footer_spacing
-                ),
+                "size": self.get_rst2pdf_pageSetup_size(page_size=self.cli_args.page_size, page_orientation=self.cli_args.page_orientation),
+                "margin-top": self.get_rst2pdf_pageSetup_measure(measure=self.cli_args.page_margins),
+                "margin-bottom": self.get_rst2pdf_pageSetup_measure(measure=self.cli_args.page_margins),
+                "margin-left": self.get_rst2pdf_pageSetup_measure(measure=self.cli_args.page_margins),
+                "margin-right": self.get_rst2pdf_pageSetup_measure(measure=self.cli_args.page_margins),
+                "margin-gutter": self.get_rst2pdf_pageSetup_measure(measure=self.cli_args.page_gutter),
+                "spacing-header": self.get_rst2pdf_pageSetup_measure(measure=self.cli_args.page_header_footer_spacing),
+                "spacing-footer": self.get_rst2pdf_pageSetup_measure(measure=self.cli_args.page_header_footer_spacing),
             },
             # There are a few reserved keywords, 'styles' is one...
             "styles": {
                 "base": {
-                        "alignment": "TA_LEFT",
-                        "allowOrphans": False,
-                        "backColor": None,
-                        "borderColor": None,
-                        "borderPadding": 0,
-                        "borderRadius": None,
-                        "borderWidth": 0,
-                        "commands": [],
-                        "firstLineIndent": 0,
-                        "fontName": self.get_rst2pdf_styles_fontName(font_name=self.cli_args.font_name),
-                        "fontSize": self.cli_args.font_size,
-                        "hyphenation": False,
-                        "leading": self.cli_args.font_size,
-                        "leftIndent": 0,
-                        "parent": None,
-                        "rightIndent": 0,
-                        "spaceAfter": 0,
-                        "spaceBefore": 0,
-                        "strike": False,
-                        "textColor": "black",
-                        "underline": False,
-                        "wordwrap": None,
+                    "alignment": "TA_LEFT",
+                    "allowOrphans": False,
+                    "backColor": None,
+                    "borderColor": None,
+                    "borderPadding": 0,
+                    "borderRadius": None,
+                    "borderWidth": 0,
+                    "commands": [],
+                    "firstLineIndent": 0,
+                    "fontName": self.get_rst2pdf_styles_fontName(font_name=self.cli_args.font_name),
+                    "fontSize": self.cli_args.font_size,
+                    "hyphenation": False,
+                    "leading": self.cli_args.font_size,
+                    "leftIndent": 0,
+                    "parent": None,
+                    "rightIndent": 0,
+                    "spaceAfter": 0,
+                    "spaceBefore": 0,
+                    "strike": False,
+                    "textColor": "black",
+                    "underline": False,
+                    "wordwrap": None,
                 },
                 "section": {
                     "parent": "base",
@@ -355,7 +398,6 @@ class Stylesheet(object):
 
 
 class ThisApplication(object):
-
     @logger.catch(reraise=True)
     def __init__(self, start_filepath=None):
         """
@@ -427,7 +469,6 @@ class ThisApplication(object):
             logger.warning(f"The start filename suffix is not 'rst'.  No conversion is implemented for '{self.start_filename_suffix}'.")
             return False
 
-
     @logger.catch(reraise=True)
     def copy_file(self, src, dst):
         """copy_file(src, dst)
@@ -498,7 +539,7 @@ class ThisApplication(object):
         output_filepath = os.path.normpath(f"{self.custom_imports_directory}/localtime_today_as_words.rst")
         today_as_words = datetime.date(year, month, day).strftime(f"%A %B {day}, {year}")
         logger.info(f"writing '{today_as_words}' to {output_filepath}")
-        with open(output_filepath, 'w+') as fh:
+        with open(output_filepath, "w+") as fh:
             fh.write(today_as_words)
 
     @logger.catch(reraise=True)
@@ -543,13 +584,11 @@ class ThisApplication(object):
             except shutil.SameFileError:
                 warnings.warn("Source and temporary destination are the same file; no file copy was required.")
 
-
             ###############################################################
             # Change to the temporary directory and start the Golang
             #     webserver to serve files from `temp_dir` locally...
             ###############################################################
             try:
-
                 print("")
                 for v46addr in local_ipv46_addrs:
                     # Skip binding to loopback addresses... this is pointless.  If it's sufficient to bind
@@ -591,6 +630,7 @@ class ThisApplication(object):
             except Exception as eee:
                 logger.error(f"   {eee}: Did you type `make all` before running the script?")
 
+
 @logger.catch(reraise=True)
 def get_version_number(version_filename="resources/version.json"):
     version_digits_file = None
@@ -612,6 +652,7 @@ def get_version_number(version_filename="resources/version.json"):
         logger.critical(error)
         raise ValueError(error)
 
+
 @logger.catch(reraise=True)
 def parse_cli_args(sys_argv1):
     """
@@ -628,7 +669,9 @@ def parse_cli_args(sys_argv1):
         add_help=True,
     )
     parser_required = parser.add_argument_group("required")
-    parser_required.add_argument("-f", "--start_filepath",
+    parser_required.add_argument(
+        "-f",
+        "--start_filepath",
         type=str,
         default=None,
         choices=None,
@@ -636,95 +679,90 @@ def parse_cli_args(sys_argv1):
         help="start filepath.",
     )
     parser_optional = parser.add_argument_group("optional")
-    parser_optional.add_argument("-w", "--webserver_port",
-        type=int,
-        default=0,
-        choices=None,
-        action="store",
-        help="Start a webserver on this port. The default is no webserver."
-    )
-    parser_optional.add_argument("-i", "--write_rst_imports",
-        default=False,
-        action="store_true",
-        help=f"Write the canned rst imports file to {CUSTOM_STYLESHEET_DIRECTORY}/custom_imports."
-    )
-    parser_optional.add_argument("--page_size",
+    parser_optional.add_argument("-w", "--webserver_port", type=int, default=0, choices=None, action="store", help="Start a webserver on this port. The default is no webserver.")
+    parser_optional.add_argument("-i", "--write_rst_imports", default=False, action="store_true", help=f"Write the canned rst imports file to {CUSTOM_STYLESHEET_DIRECTORY}/custom_imports.")
+    parser_optional.add_argument(
+        "--page_size",
         type=str,
         default=DEFAULT_PAGE_SIZE,
         action="store",
         help=f"Set the PDF page size.  Choose from {sorted(VALID_PAGE_SIZES)}.",
     )
-    parser_optional.add_argument("--page_orientation",
+    parser_optional.add_argument(
+        "--page_orientation",
         type=str,
         default=DEFAULT_PAGE_ORIENTATION,
         action="store",
         help=f"Set the page orientation.  The default is {DEFAULT_PAGE_ORIENTATION}.  Choose from {sorted(VALID_PAGE_ORIENTATIONS)}.",
     )
-    parser_optional.add_argument("--page_margins",
+    parser_optional.add_argument(
+        "--page_margins",
         type=str,
         default=DEFAULT_PAGE_MARGIN,
         action="store",
         help=f"Set all the page margins in cm or in. The default is {DEFAULT_PAGE_MARGIN}",
     )
-    parser_optional.add_argument("--page_gutter",
+    parser_optional.add_argument(
+        "--page_gutter",
         type=str,
         default=DEFAULT_PAGE_GUTTER,
         action="store",
         help=f"Set the page gutter in cm or in.  The default is {DEFAULT_PAGE_GUTTER}",
     )
-    parser_optional.add_argument("--page_header_footer_spacing",
+    parser_optional.add_argument(
+        "--page_header_footer_spacing",
         type=str,
         default=DEFAULT_PAGE_HEADER_FOOTER_SPACING,
         action="store",
         help=f"Set the header and footer spacing in cm or in.  The default is {DEFAULT_PAGE_HEADER_FOOTER_SPACING}",
     )
-    parser_optional.add_argument("-n", "--font_name",
+    parser_optional.add_argument(
+        "-n",
+        "--font_name",
         type=str,
         default=DEFAULT_STYLESHEET_FONTNAME,
         choices=sorted(VALID_FONT_NAMES),
         action="store",
         help=f"rst2pdf font name; the default is '{DEFAULT_STYLESHEET_FONTNAME}'.",
     )
-    parser_optional.add_argument("-s", "--font_size",
+    parser_optional.add_argument(
+        "-s",
+        "--font_size",
         type=int,
         default=DEFAULT_STYLESHEET_FONTSIZE,
         choices=sorted(VALID_FONT_SIZES),
         action="store",
         help="rst2pdf font size; default is '12'.",
     )
-    parser_optional.add_argument("-a", "--font_attrs",
+    parser_optional.add_argument(
+        "-a",
+        "--font_attrs",
         type=str,
         default=DEFAULT_STYLESHEET_FONTATTR,
         choices=sorted(VALID_FONT_ATTRS),
         action="append",
         help="rst2pdf font attrs; default is no font attributes.",
     )
-    parser_optional.add_argument("-d", "--stylesheet_directory",
+    parser_optional.add_argument(
+        "-d",
+        "--stylesheet_directory",
         type=str,
         default=DEFAULT_STYLESHEET_DIRECTORY,
         choices=None,
         action="store",
         help=f"rst2pdf stylesheet_directory; the default is '{DEFAULT_STYLESHEET_DIRECTORY}'.",
     )
-    parser_optional.add_argument("-e", "--stylesheet_filename",
+    parser_optional.add_argument(
+        "-e",
+        "--stylesheet_filename",
         type=str,
         default=DEFAULT_STYLESHEET_FILENAME,
         choices=None,
         action="store",
         help=f"rst2pdf stylesheet_filename; the default is '{DEFAULT_STYLESHEET_FILENAME}'.",
     )
-    parser_optional.add_argument("-t", "--terminal_encoding",
-        type=str,
-        default="UTF-8",
-        choices=None,
-        action="store",
-        help=f"Use this manual terminal encoding.  The auto-detected default is {DEFAULT_TERMINAL_ENCODING}"
-    )
-    parser_optional.add_argument("-v", "--version",
-        default=False,
-        action="store_true",
-        help="Output the script version number to stdout."
-    )
+    parser_optional.add_argument("-t", "--terminal_encoding", type=str, default="UTF-8", choices=None, action="store", help=f"Use this manual terminal encoding.  The auto-detected default is {DEFAULT_TERMINAL_ENCODING}")
+    parser_optional.add_argument("-v", "--version", default=False, action="store_true", help="Output the script version number to stdout.")
 
     args = parser.parse_args(sys_argv1)
 
@@ -746,6 +784,7 @@ def parse_cli_args(sys_argv1):
             raise OSError(f"{eee}")
 
     return args
+
 
 @logger.catch(reraise=True)
 def is_valid_ipv4addr(addr, raise_error=True):
@@ -792,6 +831,7 @@ def is_valid_ipv4addr(addr, raise_error=True):
         else:
             return False
 
+
 @logger.catch(reraise=True)
 def is_valid_ipv6addr(addr, raise_error=True):
     """
@@ -837,6 +877,7 @@ def is_valid_ipv6addr(addr, raise_error=True):
         else:
             return False
 
+
 @logger.catch(reraise=True)
 def nix_list_local_ipaddrs(terminal_encoding=None):
     """
@@ -859,16 +900,17 @@ def nix_list_local_ipaddrs(terminal_encoding=None):
     else:
         raise ValueError("No ipv4_addrs or ipv6_addrs found.")
 
+
 @logger.catch(reraise=True)
 def list_local_ipaddrs(**kwargs):
     # platforms from
     #     https://stackoverflow.com/a/13874620
     pltfm = sys.platform
-    if pltfm == 'linux' or pltfm == 'linux2':
+    if pltfm == "linux" or pltfm == "linux2":
         return nix_list_local_ipaddrs(**kwargs)
-    elif pltfm == 'cygwin':
+    elif pltfm == "cygwin":
         return nix_list_local_ipaddrs(**kwargs)
-    elif pltfm == 'darwin':
+    elif pltfm == "darwin":
         return nix_list_local_ipaddrs(**kwargs)
     elif re.search(r"^freebsd", pltfm):
         return nix_list_local_ipaddrs(**kwargs)
@@ -876,17 +918,13 @@ def list_local_ipaddrs(**kwargs):
         raise ValueError(f"Unsupported sys.platform: {pltfm}.")
 
 
-if __name__=="__main__":
-
+if __name__ == "__main__":
     check_supported_platform()
     args = parse_cli_args(sys.argv[1:])
 
     if args.webserver_port > 0:
         for address_family in sorted(VALID_IPADDRESS_FAMILIES):
-            tcp_port_open = get_unix_listening_port_sockets(
-                address_family=address_family,
-                tcp_port=args.webserver_port
-            )
+            tcp_port_open = get_unix_listening_port_sockets(address_family=address_family, tcp_port=args.webserver_port)
             if tcp_port_open is False:
                 warning = f"Webserver socket still open  webserver on TCP port {args.webserver_port}."
                 logger.warning(warning)
@@ -907,4 +945,3 @@ if __name__=="__main__":
     ipv46_addrs = list_local_ipaddrs(terminal_encoding=args.terminal_encoding)
     if args.webserver_port > 0:
         app.start_webserver(local_ipv46_addrs=ipv46_addrs, webserver_port=args.webserver_port)
-
