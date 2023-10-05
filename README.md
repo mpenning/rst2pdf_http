@@ -25,7 +25,7 @@ In this topology, I edit files on 10.0.0.6 but consume them in Windows; automagi
 Assume I am building a pdf for a doocument saved as `CoverLetter_20230927.rst` with an 8-point font, and want to serve it on port 8080....
 
 ```
-$ make build
+$ make all
 ...
 
 $ python rst2pdf_http.py -f ../CoverLetter_20230927.rst -s 8 -i -w 8080
@@ -51,7 +51,7 @@ This project can automate parts of your document.  My use-case is generating a R
 # FAQ
 
 - Can I copy and run this script outside this git repo?  Maybe, but some things will break; you really shouldn't do that.
-- Do I need to run 'make build' every time?  You only need to run 'make build' once per rst2pdf_http.py version.
+- Do I need to run 'make all' every time?  You only need to run 'make all' once per rst2pdf_http.py version.
 - Why don't I see today's date updated?  Be sure you call this script with `-i`.
 - When I use `..include:: foo` in my RestructuredText document, why do I see this error: `(SEVERE/4) Problems with "include" directive path:`?  Your RestructuredText import path in your document is wrong.
 - Is this script supported on a Read-Only filesystem?  No.
