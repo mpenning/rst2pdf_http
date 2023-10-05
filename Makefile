@@ -10,7 +10,7 @@ CLR_YELLOW=\033[0;33m
 CLR_RED=\033[0;31m
 CLR_END=\033[0;0m
 
-.DEFAULT_GOAL := build
+.DEFAULT_GOAL := all
 
 install-golangci-lint:
 ifeq (,$(wildcard $$GOROOT/bin/golangci-lint))
@@ -31,12 +31,27 @@ vulture:
 	vulture --min-confidence 80 rst2pdf_http.py
 .PHONY: vulture
 
-goclean:
+checkmake:
+	@echo "$(CLR_GREEN)>> Checking this Makefile(CLR_END)"
+	checkmake --config=resources/checkmake.ini ./Makefile
+.PHONY: checkmake
+
+clean:
 	@echo "$(CLR_GREEN)>> cleaning the Go build cache$(CLR_END)"
 	go clean -cache
-.PHONY: goclean
+.PHONY: clean
 
-build:
+test:
+	make checkmake
+.PHONY: test
+
+all:
+	#############################################################################
+	#
+	# check this Makefile with https://github.com/mrtazz/checkmake/
+	#
+	#############################################################################
+	make checkmake
 	@echo "$(CLR_GREEN)>> Building the '$(WEBSERVER_BINARY_NAME)' Go 'go.mod' file.$(CLR_END)"
 	@echo "$(CLR_CYAN)    >> Removing the old ./$(WEBSERVER_BINARY_NAME) binary.$(CLR_END)"
 	-echo "    Removing the old ./$(WEBSERVER_BINARY_NAME) executable"
@@ -79,5 +94,5 @@ build:
 	# Install all python dependencies
 	#############################################################################
 	make pip
-.PHONY: build
+.PHONY: all
 
