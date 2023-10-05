@@ -132,9 +132,9 @@ def check_supported_platform():
     if not (sys.platform in VALID_PLATFORMS):
         raise OSError(f"{sys.platform} is not supported")
 
-def check_unix_listening_port_open(address_family=None, tcp_port=None):
+def get_unix_listening_port_sockets(address_family=None, tcp_port=None):
     """
-    Return True if the TCP port is open.  Return False if the TCP port is not open.
+    Return True if the TCP port has a socket in the table.  Return False if the TCP port is not open.
 
     $ netstat -an -A inet
 Active Internet connections (servers and established)
@@ -175,11 +175,14 @@ udp        0      0 0.0.0.0:123             0.0.0.0:*
             proto = columns[0]
             recvq = columns[1]
             sendq = columns[2]
+            state = columns[-1]
             local_address_port = columns[3]
-            if proto=="tcp" or proto=="tcp6":
-                if local_address_port.split(":")[-1]==str(tcp_port):
-                    port_open = False
-                    break
+            if state.lower()=="listen":
+                if proto=="tcp" or proto=="tcp6":
+                    if local_address_port.split(":")[-1]==str(tcp_port):
+                        logger.debug("    " + line)
+                        port_open = False
+                        break
 
     return port_open
 
@@ -882,14 +885,13 @@ if __name__=="__main__":
 
     if args.webserver_port > 0:
         for address_family in sorted(VALID_IPADDRESS_FAMILIES):
-            tcp_port_open = check_unix_listening_port_open(
+            tcp_port_open = get_unix_listening_port_sockets(
                 address_family=address_family,
                 tcp_port=args.webserver_port
             )
             if tcp_port_open is False:
-                error = f"Cannot start webserver on TCP port {args.webserver_port}."
-                logger.error(error)
-                raise OSError(error)
+                warning = f"Webserver socket still open  webserver on TCP port {args.webserver_port}."
+                logger.warning(warning)
 
     app = ThisApplication(start_filepath=args.start_filepath)
     stylesheet = Stylesheet(
