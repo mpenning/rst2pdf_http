@@ -113,6 +113,8 @@ all:
 	# Version number seat-belt... git_revlist_count_HEAD.txt should always match
 	#   git rev-list --count HEAD
 	#############################################################################
-	$(shell diff -u resources/git_revlist_count_HEAD.txt <(git rev-list --count HEAD))
+	$(shell  git rev-list --count HEAD > resources/this_rev.tmp)
+	diff -u resources/this_rev.tmp resources/git_revlist_count_HEAD.txt
+	rm resources/this_rev.tmp
 .PHONY: all
 
