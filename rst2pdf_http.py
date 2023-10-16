@@ -680,12 +680,6 @@ def parse_cli_args(sys_argv1):
         action="store",
         help="Start a webserver on this port. The default is no webserver.")
     parser_optional.add_argument(
-        "--no_write_rst_imports",
-        default=True,
-        action="store_false",
-        help=f"Don't write the canned rst imports file to {CUSTOM_STYLESHEET_DIRECTORY}/custom_rst_imports."
-    )
-    parser_optional.add_argument(
         "--page_size",
         type=str,
         default=DEFAULT_PAGE_SIZE,
@@ -764,7 +758,19 @@ def parse_cli_args(sys_argv1):
         action="store",
         help=f"rst2pdf stylesheet_filename; the default is '{DEFAULT_STYLESHEET_FILENAME}'.",
     )
-    parser_optional.add_argument("-t", "--terminal_encoding", type=str, default="UTF-8", choices=None, action="store", help=f"Use this manual terminal encoding.  The auto-detected default is {DEFAULT_TERMINAL_ENCODING}")
+    parser_optional.add_argument("-t", "--terminal_encoding",
+        type=str,
+        default="UTF-8",
+        choices=None,
+        action="store",
+        help=f"Use this manual terminal encoding.  The auto-detected default is {DEFAULT_TERMINAL_ENCODING}"
+    )
+    parser_optional.add_argument(
+        "--no_write_rst_imports",
+        default=True,
+        action="store_false",
+        help=f"Don't write the canned rst imports file to {CUSTOM_STYLESHEET_DIRECTORY}/custom_rst_imports."
+    )
     parser_optional.add_argument("-v", "--version", default=False, action="store_true", help="Output the script version number to stdout.")
 
     args = parser.parse_args(sys_argv1)
