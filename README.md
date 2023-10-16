@@ -42,10 +42,10 @@ Serving HTTP on :: port 8080 (http://[::]:8080/) ...
 
 ## Automate Documentation Components
 
-This project can automate parts of your document.  My use-case is generating a Restructured-text file with the contents of today's date as words in a file named ``~/.rst2pdf/custom_imports/today_as_words.rst``.  Instead of remembering to manually edit a document with today's date, I can just import a file with:
+This project can automate parts of your document.  My use-case is generating a Restructured-text file with the contents of today's date as words in a file named ``~/.rst2pdf/custom_rst_imports/today_as_words.rst``.  Instead of remembering to manually edit a document with today's date, I can just import a file with:
 
 ```
-.. include:: /home/my_user/.rst2pdf/custom_imports/localtime_today_as_words.rst
+.. include:: /home/my_user/.rst2pdf/custom_rst_imports/localtime_today_as_words.rst
 ```
 
 # FAQ

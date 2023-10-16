@@ -30,6 +30,7 @@ VALID_PAGE_UNITS = set(
 )
 VALID_PAGE_SIZES = set(
     {
+        "LETTER",
         "A0",
         "A1",
         "A2",
@@ -66,20 +67,6 @@ VALID_FONT_NAMES = set(
         "Serif",
     }
 )  # Sans is similar to Arial
-VALID_FONT_SIZES = set(
-    {
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16,
-    }
-)
 VALID_IPADDRESS_FAMILIES = set(
     {
         "inet",
@@ -91,12 +78,12 @@ VALID_PLATFORMS = set(
         "linux",
     }
 )
-DEFAULT_PAGE_SIZE = "A5"
+DEFAULT_PAGE_SIZE = "LETTER"
 DEFAULT_PAGE_ORIENTATION = "Portriat"
 DEFAULT_PAGE_MARGIN = "0.75cm"
-DEFAULT_PAGE_GUTTER = "0.0cm"
-DEFAULT_PAGE_HEADER_FOOTER_SPACING = "0.0cm"
-DEFAULT_STYLESHEET_DIRECTORY = os.path.expanduser("~/.rst2pdf/")
+DEFAULT_PAGE_GUTTER = "0.00cm"
+DEFAULT_PAGE_HEADER_FOOTER_SPACING = "0.00cm"
+DEFAULT_STYLESHEET_DIRECTORY = os.path.expanduser("~/.rst2pdf/custom_rst_imports")
 DEFAULT_STYLESHEET_FILENAME = "rst2pdf_stylesheet.yml"
 DEFAULT_STYLESHEET_FONTATTR = []
 DEFAULT_STYLESHEET_FONTNAME = "Serif"
@@ -104,7 +91,7 @@ DEFAULT_STYLESHEET_FONTSIZE = 9
 DEFAULT_TERMINAL_ENCODING = Console().encoding
 DEFAULT_START_FILENAME_SUFFIX = "rst"
 CUSTOM_STYLESHEET_DIRECTORY = DEFAULT_STYLESHEET_DIRECTORY
-CUSTOM_IMPORTS_FILEPATH = f"{CUSTOM_STYLESHEET_DIRECTORY}/custom_imports"
+CUSTOM_RST_IMPORTS_FILEPATH = f"{CUSTOM_STYLESHEET_DIRECTORY}"
 
 
 class DummyLoggerProperty(object):
@@ -195,11 +182,13 @@ def check_file_exists(filepath=None):
         raise OSError(f"{abspath} must exist.")
 
 
+@logger.catch(reraise=True)
 def check_supported_platform():
     if sys.platform not in VALID_PLATFORMS:
         raise OSError(f"{sys.platform} is not supported")
 
 
+@logger.catch(reraise=True)
 def get_unix_listening_port_sockets(address_family=None, tcp_port=None):
     """
         Return True if the TCP port has a socket in the table.  Return False if the TCP port is not open.
@@ -287,7 +276,7 @@ class Stylesheet(object):
     # This is on the Stylesheet() class
     @logger.catch(reraise=True)
     def save_stylesheet_yaml(self, directory=CUSTOM_STYLESHEET_DIRECTORY, filename=DEFAULT_STYLESHEET_FILENAME):
-        """Use PyYaml to save `get_rst2pdf_data_dict()` as an rst2pdf stylesheet"""
+        """Use PyYaml to save the dict returned by `get_rst2pdf_data_dict()` as an rst2pdf stylesheet"""
         try:
             os.makedirs(f"{directory}")
         except Exception:
@@ -333,6 +322,7 @@ class Stylesheet(object):
 
         return page_size
 
+    @logger.catch(reraise=True)
     def get_rst2pdf_pageSetup_measure(self, measure=""):
         mm = re.search(r"^\s*(\d+)(\.\d+)*\s*(in|IN|cm|CM)\s*$", measure)
         if isinstance(mm, re.Match):
@@ -435,9 +425,9 @@ class ThisApplication(object):
         else:
             self.cli_args = None
 
-        self.custom_imports_directory = os.path.normpath(f"{CUSTOM_STYLESHEET_DIRECTORY}/custom_imports")
+        self.custom_rst_imports_directory = os.path.normpath(f"{CUSTOM_STYLESHEET_DIRECTORY}")
         # Write text files to rst_imports/ to be imported
-        self.write_custom_imports_directory()
+        self.write_custom_rst_imports_directory()
         self.write_custom_rst_imports()
 
     @logger.catch(reraise=True)
@@ -508,9 +498,10 @@ class ThisApplication(object):
             logger.error(f"{eee}")
             return False
 
-    def write_custom_imports_directory(self):
+    @logger.catch(reraise=True)
+    def write_custom_rst_imports_directory(self):
         try:
-            os.makedirs(f"{CUSTOM_STYLESHEET_DIRECTORY}/custom_imports")
+            os.makedirs(f"{CUSTOM_STYLESHEET_DIRECTORY}")
         except FileExistsError:
             # Directory already exists...
             pass
@@ -519,15 +510,17 @@ class ThisApplication(object):
             raise OSError(f"{eee}")
         return True
 
+    @logger.catch(reraise=True)
     def write_custom_rst_imports(self):
         """write_custom_rst_imports()
 
         Write custom imports if the script is called with ``-i``.
         """
 
-        if self.cli_args.write_rst_imports is True:
+        if self.cli_args.no_write_rst_imports is True:
             self.write_localtime_today_as_words()
 
+    @logger.catch(reraise=True)
     def write_localtime_today_as_words(self):
         """
         Get the system local date, and save it as a file.
@@ -536,7 +529,7 @@ class ThisApplication(object):
         day = today.day
         month = today.month
         year = today.year
-        output_filepath = os.path.normpath(f"{self.custom_imports_directory}/localtime_today_as_words.rst")
+        output_filepath = os.path.normpath(f"{self.custom_rst_imports_directory}/localtime_today_as_words.rst")
         today_as_words = datetime.date(year, month, day).strftime(f"%A %B {day}, {year}")
         logger.info(f"writing '{today_as_words}' to {output_filepath}")
         with open(output_filepath, "w+") as fh:
@@ -679,8 +672,19 @@ def parse_cli_args(sys_argv1):
         help="start filepath.",
     )
     parser_optional = parser.add_argument_group("optional")
-    parser_optional.add_argument("-w", "--webserver_port", type=int, default=0, choices=None, action="store", help="Start a webserver on this port. The default is no webserver.")
-    parser_optional.add_argument("-i", "--write_rst_imports", default=False, action="store_true", help=f"Write the canned rst imports file to {CUSTOM_STYLESHEET_DIRECTORY}/custom_imports.")
+    parser_optional.add_argument(
+        "-w", "--webserver_port",
+        type=int,
+        default=0,
+        choices=None,
+        action="store",
+        help="Start a webserver on this port. The default is no webserver.")
+    parser_optional.add_argument(
+        "--no_write_rst_imports",
+        default=True,
+        action="store_false",
+        help=f"Don't write the canned rst imports file to {CUSTOM_STYLESHEET_DIRECTORY}/custom_rst_imports."
+    )
     parser_optional.add_argument(
         "--page_size",
         type=str,
@@ -728,9 +732,8 @@ def parse_cli_args(sys_argv1):
     parser_optional.add_argument(
         "-s",
         "--font_size",
-        type=int,
+        type=float,
         default=DEFAULT_STYLESHEET_FONTSIZE,
-        choices=sorted(VALID_FONT_SIZES),
         action="store",
         help="rst2pdf font size; default is '12'.",
     )
