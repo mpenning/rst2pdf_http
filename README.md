@@ -52,7 +52,6 @@ This project can automate parts of your document.  My use-case is generating a R
 
 - Can I copy and run this script outside this git repo?  Maybe, but some things will break; you really shouldn't do that.
 - Do I need to run 'make all' every time?  You only need to run 'make all' once per rst2pdf_http.py version.
-- Why don't I see today's date updated?  Be sure you call this script with `-i`.
 - When I use `..include:: foo` in my RestructuredText document, why do I see this error: `(SEVERE/4) Problems with "include" directive path:`?  Your RestructuredText import path in your document is wrong.
 - Is this script supported on a Read-Only filesystem?  No.
 - Can you use this with non-RestructuredText files?  Yes, but PDF conversion is only implemented for RestructuredText.  If a non-RestructuredText file is used with `-f`, then the file is served with the HTTP server as it was originally found.
@@ -77,8 +76,6 @@ required:
 optional:
   -w WEBSERVER_PORT, --webserver_port WEBSERVER_PORT
                         Start a webserver on this port.
-  -i, --write_rst_imports
-                        Write the canned rst imports.
   -n {Mono,Sans,Serif}, --font_name {Mono,Sans,Serif}
                         rst2pdf font name; the default is 'Serif'.
   -s {10,12,14}, --font_size {10,12,14}
@@ -91,6 +88,8 @@ optional:
                         rst2pdf stylesheet_filename; the default is 'rst2pdf_stylesheet.yml'.
   -t TERMINAL_ENCODING, --terminal_encoding TERMINAL_ENCODING
                         .
+  --no_write_rst_imports
+                        Don't write the canned rst imports.
   -v, --version         Output the script version number to stdout.
 
 ```
