@@ -1,0 +1,35 @@
+pageSetup:
+  margin-bottom: 0.75cm
+  margin-gutter: 0.05cm
+  margin-left: 0.75cm
+  margin-right: 0.75cm
+  margin-top: 0.75cm
+  size: A5
+  spacing-footer: 0.05cm
+  spacing-header: 0.05cm
+styles:
+  base:
+    alignment: TA_LEFT
+    allowOrphans: false
+    backColor: null
+    borderColor: null
+    borderPadding: 0
+    borderRadius: null
+    borderWidth: 0
+    commands: []
+    firstLineIndent: 0
+    fontName: fontSerif
+    fontSize: 9
+    hyphenation: false
+    leading: 9
+    leftIndent: 0
+    parent: null
+    rightIndent: 0
+    spaceAfter: 0
+    spaceBefore: 0
+    strike: false
+    textColor: black
+    underline: false
+    wordwrap: null
+  section:
+    parent: base
