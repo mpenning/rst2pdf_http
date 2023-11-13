@@ -1,12 +1,12 @@
 pageSetup:
-  margin-bottom: 1.75cm
+  margin-bottom: 1.0cm
   margin-gutter: 0.50cm
-  margin-left: 1.75cm
-  margin-right: 1.75cm
-  margin-top: 1.75cm
+  margin-left: 1.0cm
+  margin-right: 1.0cm
+  margin-top: 1.0cm
   size: A5
-  spacing-footer: 0.50cm
-  spacing-header: 0.50cm
+  spacing-footer: 0.75cm
+  spacing-header: 0.75cm
 styles:
   base:
     alignment: TA_LEFT

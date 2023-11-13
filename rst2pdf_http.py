@@ -80,14 +80,14 @@ VALID_PLATFORMS = set(
 )
 DEFAULT_PAGE_SIZE = "LETTER"
 DEFAULT_PAGE_ORIENTATION = "Portriat"
-DEFAULT_PAGE_MARGIN = "0.75cm"
+DEFAULT_PAGE_MARGIN = "1.50cm"
 DEFAULT_PAGE_GUTTER = "0.00cm"
-DEFAULT_PAGE_HEADER_FOOTER_SPACING = "0.00cm"
+DEFAULT_PAGE_HEADER_FOOTER_SPACING = "0.50cm"
 DEFAULT_STYLESHEET_DIRECTORY = os.path.expanduser("~/.rst2pdf/custom_rst_imports")
 DEFAULT_STYLESHEET_FILENAME = "rst2pdf_stylesheet.yml"
 DEFAULT_STYLESHEET_FONTATTR = []
 DEFAULT_STYLESHEET_FONTNAME = "Serif"
-DEFAULT_STYLESHEET_FONTSIZE = 9
+DEFAULT_STYLESHEET_FONTSIZE = 9.75
 DEFAULT_TERMINAL_ENCODING = Console().encoding
 DEFAULT_START_FILENAME_SUFFIX = "rst"
 CUSTOM_STYLESHEET_DIRECTORY = DEFAULT_STYLESHEET_DIRECTORY
@@ -271,7 +271,12 @@ class Stylesheet(object):
     # This is on the Stylesheet() class
     @logger.catch(reraise=True)
     def __repr__(self):
-        return f"""<Stylesheet font_name: {self.cli_args.font_name}, font_size: {self.cli_args.font_size}, font_attrs: {self.cli_args.font_attrs}>"""
+        return f"""font_name: {self.cli_args.font_name}, font_size: {self.cli_args.font_size}, font_attrs: {self.cli_args.font_attrs}"""
+
+    # This is on the Stylesheet() class
+    @logger.catch(reraise=True)
+    def __str__(self):
+        return f"""<Stylesheet {self.__repr__()}>"""
 
     # This is on the Stylesheet() class
     @logger.catch(reraise=True)
@@ -341,9 +346,10 @@ class Stylesheet(object):
         """
         Create the most essential rst2pdf stylesheet from scratch.
         """
-        return {
+        page_stylesheet = {
             # There are a few reserved keywords, 'pageSetup' is one...
             "pageSetup": {
+
                 # Set both size and orientation. Dont change the 'size' keyword
                 "size": self.get_rst2pdf_pageSetup_size(page_size=self.cli_args.page_size, page_orientation=self.cli_args.page_orientation),
                 "margin-top": self.get_rst2pdf_pageSetup_measure(measure=self.cli_args.page_margins),
@@ -385,6 +391,7 @@ class Stylesheet(object):
                 },
             },
         }
+        return page_stylesheet
 
 
 class ThisApplication(object):
@@ -558,7 +565,7 @@ class ThisApplication(object):
         return True
 
     @logger.catch(reraise=True)
-    def start_webserver(self, local_ipv46_addrs=None, webserver_port=0):
+    def start_webserver(self, local_ipv46_addrs=None, webserver_port=0, with_pdf=False):
         """
         Create a temporary directory, copy files into it, and start webserver on all sockets.
         """
@@ -569,11 +576,15 @@ class ThisApplication(object):
         # Check the local ipv4 / ipv6 addresses for problems...
         self.check_ipv46_addrs(local_ipv46_addrs)
 
+
         with tempfile.TemporaryDirectory() as temp_dir:
-            temporary_finish_path = os.path.normpath(f"{temp_dir}/{self.finish_filename}")
+            pdf_start = self.finish_filepath
+            tmp_pdf_finish = os.path.normpath(f"{temp_dir}/{self.finish_filename}")
             try:
                 self.copy_file(src=f"{self.start_filepath}", dst=temp_dir)
-                self.copy_file(src=f"{self.finish_filepath}", dst=temporary_finish_path)
+                if with_pdf is True:
+                    #self.copy_file(src=pdf_start, dst=temporary_finish_path)
+                    self.copy_file(src=pdf_start, dst=tmp_pdf_finish)
             except shutil.SameFileError:
                 warnings.warn("Source and temporary destination are the same file; no file copy was required.")
 
@@ -951,6 +962,7 @@ if __name__ == "__main__":
     )
 
     app.convert_rst_to_pdf(stylesheet_directory=args.stylesheet_directory, stylesheet_filename=args.stylesheet_filename)
+
     ipv46_addrs = list_local_ipaddrs(terminal_encoding=args.terminal_encoding)
     if args.webserver_port > 0:
-        app.start_webserver(local_ipv46_addrs=ipv46_addrs, webserver_port=args.webserver_port)
+        app.start_webserver(local_ipv46_addrs=ipv46_addrs, webserver_port=args.webserver_port, with_pdf=True)
