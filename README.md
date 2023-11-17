@@ -22,7 +22,7 @@ In this topology, I edit files on 10.0.0.6 but consume them in Windows; automagi
 
 # Typical Use-case
 
-Assume I am building a pdf for a doocument saved as `CoverLetter_20230927.rst` with an 8-point font, and want to serve it on port 8080....
+Assume I am building a pdf for a document saved as `CoverLetter_20230927.rst` with an 8-point font, and want to serve it on port 8080....
 
 ```
 $ make all
@@ -53,7 +53,7 @@ This project can automate parts of your document.  My use-case is generating a R
 - Can I copy and run this script outside this git repo?  Maybe, but some things will break; you really shouldn't do that.
 - Do I need to run 'make all' every time?  You only need to run 'make all' once per rst2pdf_http.py version.
 - When I use `..include:: foo` in my RestructuredText document, why do I see this error: `(SEVERE/4) Problems with "include" directive path:`?  Your RestructuredText import path in your document is wrong.
-- Is this script supported on a Read-Only filesystem?  No.
+- Is this script supported on a Read-Only file system?  No.
 - Can you use this with non-RestructuredText files?  Yes, but PDF conversion is only implemented for RestructuredText.  If a non-RestructuredText file is used with `-f`, then the file is served with the HTTP server as it was originally found.
 
 # Full Syntax
