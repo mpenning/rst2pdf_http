@@ -6,6 +6,7 @@ vulture==2.9.1
 ruff==0.0.292
 black
 rst2pdf
+rich
 # readline makes the python repl up-arrows work...
 #
 # If you compiled python without readline, ensure you have readline installed
@@ -18,4 +19,4 @@ rst2pdf
 # strictly-speaking rst2pdf_http.py does not require readline, but in the
 # long-run you wont regret the trouble to compile python with.
 #
-readline
+#readline

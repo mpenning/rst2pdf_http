@@ -349,7 +349,6 @@ class Stylesheet(object):
         page_stylesheet = {
             # There are a few reserved keywords, 'pageSetup' is one...
             "pageSetup": {
-
                 # Set both size and orientation. Dont change the 'size' keyword
                 "size": self.get_rst2pdf_pageSetup_size(page_size=self.cli_args.page_size, page_orientation=self.cli_args.page_orientation),
                 "margin-top": self.get_rst2pdf_pageSetup_measure(measure=self.cli_args.page_margins),
@@ -576,14 +575,13 @@ class ThisApplication(object):
         # Check the local ipv4 / ipv6 addresses for problems...
         self.check_ipv46_addrs(local_ipv46_addrs)
 
-
         with tempfile.TemporaryDirectory() as temp_dir:
             pdf_start = self.finish_filepath
             tmp_pdf_finish = os.path.normpath(f"{temp_dir}/{self.finish_filename}")
             try:
                 self.copy_file(src=f"{self.start_filepath}", dst=temp_dir)
                 if with_pdf is True:
-                    #self.copy_file(src=pdf_start, dst=temporary_finish_path)
+                    # self.copy_file(src=pdf_start, dst=temporary_finish_path)
                     self.copy_file(src=pdf_start, dst=tmp_pdf_finish)
             except shutil.SameFileError:
                 warnings.warn("Source and temporary destination are the same file; no file copy was required.")
@@ -683,13 +681,7 @@ def parse_cli_args(sys_argv1):
         help="start filepath.",
     )
     parser_optional = parser.add_argument_group("optional")
-    parser_optional.add_argument(
-        "-w", "--webserver_port",
-        type=int,
-        default=0,
-        choices=None,
-        action="store",
-        help="Start a webserver on this port. The default is no webserver.")
+    parser_optional.add_argument("-w", "--webserver_port", type=int, default=0, choices=None, action="store", help="Start a webserver on this port. The default is no webserver.")
     parser_optional.add_argument(
         "--page_size",
         type=str,
@@ -769,19 +761,8 @@ def parse_cli_args(sys_argv1):
         action="store",
         help=f"rst2pdf stylesheet_filename; the default is '{DEFAULT_STYLESHEET_FILENAME}'.",
     )
-    parser_optional.add_argument("-t", "--terminal_encoding",
-        type=str,
-        default="UTF-8",
-        choices=None,
-        action="store",
-        help=f"Use this manual terminal encoding.  The auto-detected default is {DEFAULT_TERMINAL_ENCODING}"
-    )
-    parser_optional.add_argument(
-        "--no_write_rst_imports",
-        default=True,
-        action="store_false",
-        help=f"Don't write the canned rst imports file to {CUSTOM_STYLESHEET_DIRECTORY}/custom_rst_imports."
-    )
+    parser_optional.add_argument("-t", "--terminal_encoding", type=str, default="UTF-8", choices=None, action="store", help=f"Use this manual terminal encoding.  The auto-detected default is {DEFAULT_TERMINAL_ENCODING}")
+    parser_optional.add_argument("--no_write_rst_imports", default=True, action="store_false", help=f"Don't write the canned rst imports file to {CUSTOM_STYLESHEET_DIRECTORY}/custom_rst_imports.")
     parser_optional.add_argument("-v", "--version", default=False, action="store_true", help="Output the script version number to stdout.")
 
     args = parser.parse_args(sys_argv1)

@@ -1,6 +1,6 @@
 module filesystem_webserver
 
-go 1.20
+go 1.21.4
 
 require (
 	github.com/gleich/logoru v0.0.0-20230101033757-d86cd895c7a1

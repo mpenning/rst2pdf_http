@@ -43,6 +43,8 @@ ruff:
 
 checkmake:
 	@echo "$(CLR_GREEN)>> Checking this Makefile(CLR_END)"
+	# See this git repo for checkmake source...
+	#    https://github.com/mrtazz/checkmake
 	checkmake --config=resources/checkmake.ini ./Makefile
 .PHONY: checkmake
 
@@ -87,25 +89,25 @@ all:
 	@echo "$(CLR_CYAN)       >> Building temporary go cache directory.$(CLR_END)"
 	RST2PDFHTTPTEMPDIR=$(shell mktemp -d)
 	@echo "$(CLR_CYAN)    >> Versioned go module download$(CLR_END)"
-	GOPATH=$$GOROOT/bin GOMODCACHE=$$RST2PDFHTTPTEMPDIR go get github.com/gleich/logoru@v0.0.0-20230101033757-d86cd895c7a1
-	GOPATH=$$GOROOT/bin GOMODCACHE=$$RST2PDFHTTPTEMPDIR go get github.com/gorilla/handlers@v1.5.1
+	go get github.com/gleich/logoru@v0.0.0-20230101033757-d86cd895c7a1
+	go get github.com/gorilla/handlers@v1.5.1
 	# pflag is buggy and doesnt handle version numbering well yet...
-	GOPATH=$$GOROOT/bin GOMODCACHE=$$RST2PDFHTTPTEMPDIR go get github.com/spf13/pflag@latest
+	go get github.com/spf13/pflag@latest
 	@echo "$(CLR_CYAN)    >> go tidy$(CLR_END)"
-	GOPATH=$$GOROOT/bin GOMODCACHE=$$RST2PDFHTTPTEMPDIR go mod tidy -v
+	go mod tidy -v
 	@echo "$(CLR_CYAN)    >> vetting src$(CLR_END)"
-	cd src && GOPATH=$$GOROOT/bin go vet .
+	cd src && go vet .
 	@echo "$(CLR_CYAN)    >> compiling$(CLR_END)"
 	#############################################################################
 	# Buld the webserver binary...
 	#     For reasons I'm not yet sure of, the output binary is in ./src/src
 	#############################################################################
-	GOPATH=$$GOROOT/bin go build -C src/ -ldflags "-s -w" .
+	go build -C src/ -ldflags "-s -w" .
 	mv src/src ./$(WEBSERVER_BINARY_NAME)
 	#############################################################################
 	# Delete the local Go cache...
 	#############################################################################
-	$(shell chmod -R 777 $$RST2PDFHTTPTEMPDIR)
+	$(shell chmod -R 777 $$(RST2PDFHTTPTEMPDIR))
 	rm -rf $$RST2PDFHTTPTEMPDIR
 	#############################################################################
 	# Install all python dependencies
